@@ -23,8 +23,9 @@ impl VectorField {
 
     /// Get the vector at location x, y and z
     pub fn at(&self, x: isize, y: isize, z: isize) -> Vector3<f32> {
-        if x < 0 || x as usize > self.nx || y < 0 || y as usize > self.ny || z < 0
-            || z as usize > self.nz
+        if x < 0 || x as usize >= self.nx
+            || y < 0 || y as usize >= self.ny
+            || z < 0 || z as usize >= self.nz
         {
             Vector3::new(0.0, 0.0, 0.0)
         } else {
@@ -33,9 +34,9 @@ impl VectorField {
     }
 
     pub fn set(&mut self, x: isize, y: isize, z: isize, value: Vector3<f32>) {
-        if x < 0 || x as usize > self.nx || y < 0 || y as usize > self.ny || z < 0
-            || z as usize > self.nz
-        {
+        if x < 0 || x as usize >= self.nx
+            || y < 0 || y as usize >= self.ny
+            || z < 0 || z as usize >= self.nz {
             return;
         }
         self.vectors[x as usize + self.nx * (y as usize + self.ny * (z as usize))] = value;
@@ -52,7 +53,7 @@ impl VectorField {
                 self.nx * self.ny * self.nz,
                 (0..self.nz as isize).flat_map(|z| {
                     (0..self.ny as isize).flat_map(move |y| {
-                        (0..self.nz as isize).map(move |x| {
+                        (0..self.nx as isize).map(move |x| {
                             Vector3::new(
                                 self.at(x, y + 1, z).z - self.at(x, y, z).z - self.at(x, y, z + 1).y
                                     + self.at(x, y, z).y,
@@ -77,7 +78,7 @@ impl VectorField {
                 self.nx * self.ny * self.nz,
                 (0..self.nz as isize).flat_map(|z| {
                     (0..self.ny as isize).flat_map(move |y| {
-                        (0..self.nz as isize).map(move |x| {
+                        (0..self.nx as isize).map(move |x| {
                             Vector3::new(
                                 self.at(x, y, z).z - self.at(x, y - 1, z).z - self.at(x, y, z).y
                                     + self.at(x, y, z - 1).y,

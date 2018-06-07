@@ -1,5 +1,6 @@
 use nalgebra::*;
 use scalarfield::ScalarField;
+use std::f32::consts::PI;
 use std::ops::Mul;
 use vectorfield::VectorField;
 
@@ -34,9 +35,63 @@ impl<'a, 'b> Mul<VectorField> for &'a A<'b> {
     }
 }
 
+pub fn stress_tensor(
+    frequency: f32,
+    point: Point3<usize>,
+    electric_field: &ScalarField,
+    magnetic_field: &ScalarField,
+    inv_electric_field: &ScalarField,
+    inv_magnetic_field: &ScalarField,
+    size: Vector3<usize>,
+) -> Matrix3<f32> {
+    let electric_tensor = green_tensor(frequency, point, electric_field, inv_magnetic_field, size);
+    let magnetic_tensor = green_tensor(frequency, point, magnetic_field, inv_electric_field, size);
+
+    frequency * frequency / PI
+        * (magnetic_field.at(point.x as isize, point.y as isize, point.z as isize)
+            * (magnetic_tensor - Matrix3::from_diagonal_element(0.5) * magnetic_tensor.trace())
+            + electric_field.at(point.x as isize, point.y as isize, point.z as isize)
+                * (electric_tensor - Matrix3::from_diagonal_element(0.5) * electric_tensor.trace()))
+}
+
+pub fn green_tensor(
+    frequency: f32,
+    point: Point3<usize>,
+    scalar_primary: &ScalarField,
+    scalar_secundary: &ScalarField,
+    size: Vector3<usize>,
+) -> Matrix3<f32> {
+    Matrix3::from_columns(&[
+        green_function(
+            frequency,
+            point,
+            Vector3::new(1.0, 0.0, 0.0),
+            scalar_primary,
+            scalar_secundary,
+            size,
+        ),
+        green_function(
+            frequency,
+            point,
+            Vector3::new(0.0, 1.0, 0.0),
+            scalar_primary,
+            scalar_secundary,
+            size,
+        ),
+        green_function(
+            frequency,
+            point,
+            Vector3::new(0.0, 0.0, 1.0),
+            scalar_primary,
+            scalar_secundary,
+            size,
+        ),
+    ])
+}
+
 pub fn green_function(
     frequency: f32,
-    point: Vector3<usize>,
+    point: Point3<usize>,
     polarization: Vector3<f32>,
     scalar_primary: &ScalarField,
     scalar_secundary: &ScalarField,
@@ -58,7 +113,7 @@ pub fn green_function(
 
     let mut r = b - &(&a * x.clone());
 
-    for _ in 0..10 {
+    for _ in 0..*size.iter().max().unwrap() {
         let a_r = &a * r.clone();
         let alpha = (&r * &r) / (&r * &a_r);
         let alpha_a_r = alpha * a_r;

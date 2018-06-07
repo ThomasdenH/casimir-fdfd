@@ -5,3 +5,4 @@ authors = ["Thomas <denhollander.thomas@gmail.com>"]
 
 [dependencies]
 nalgebra = "0.15.1"
+pbr = "1.0.1"
