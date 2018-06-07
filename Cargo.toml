@@ -1,0 +1,7 @@
+[package]
+name = "casimir-fdfd"
+version = "0.1.0"
+authors = ["Thomas <denhollander.thomas@gmail.com>"]
+
+[dependencies]
+nalgebra = "0.15.1"
