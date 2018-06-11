@@ -1,5 +1,5 @@
 use nalgebra::*;
-use std::ops::{Add, Mul};
+use std::ops::{Add, Mul, Index};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct ScalarField {
@@ -16,16 +16,6 @@ impl ScalarField {
             ny,
             nz,
             scalars: DVector::from_element(nx * ny * nz, 1.0),
-        }
-    }
-
-    pub fn at(&self, x: isize, y: isize, z: isize) -> f32 {
-        if x < 0 || x as usize >= self.nx || y < 0 || y as usize >= self.ny || z < 0
-            || z as usize >= self.nz
-        {
-            1.0
-        } else {
-            self.scalars[x as usize + self.nx * (y as usize + self.ny * (z as usize))]
         }
     }
 
@@ -71,3 +61,46 @@ impl<'a> Add<&'a ScalarField> for ScalarField {
         self
     }
 }
+
+impl Index<(usize, usize, usize)> for ScalarField {
+    type Output = f32;
+
+    fn index(&self, index: (usize, usize, usize)) -> &f32 {
+        let (x, y, z) = index;
+        assert!(x < self.nx && y < self.ny && z < self.nz);
+        &self.scalars[x as usize + self.nx * (y as usize + self.ny * (z as usize))]
+    }
+}
+
+impl Index<(isize, isize, isize)> for ScalarField {
+    type Output = f32;
+
+    fn index(&self, index: (isize, isize, isize)) -> &f32 {
+        let (x, y, z) = index;
+        if x < 0 || x as usize >= self.nx
+            || y < 0 || y as usize >= self.ny
+            || z < 0 || z as usize >= self.nz
+            {
+                &1.0
+            } else {
+            &self.scalars[x as usize + self.nx * (y as usize + self.ny * (z as usize))]
+        }
+    }
+}
+
+impl Index<Point3<usize>> for ScalarField {
+    type Output = f32;
+
+    fn index(&self, index: Point3<usize>) -> &f32 {
+        &self[(index.x, index.y, index.z)]
+    }
+}
+
+impl Index<Point3<isize>> for ScalarField {
+    type Output = f32;
+
+    fn index(&self, index: Point3<isize>) -> &f32 {
+        &self[(index.x, index.y, index.z)]
+    }
+}
+

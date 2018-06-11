@@ -48,9 +48,9 @@ pub fn stress_tensor(
     let magnetic_tensor = green_tensor(frequency, point, magnetic_field, inv_electric_field, size);
 
     frequency * frequency / PI
-        * (magnetic_field.at(point.x as isize, point.y as isize, point.z as isize)
+        * (magnetic_field[point]
             * (magnetic_tensor - Matrix3::from_diagonal_element(0.5) * magnetic_tensor.trace())
-            + electric_field.at(point.x as isize, point.y as isize, point.z as isize)
+            + electric_field[point]
                 * (electric_tensor - Matrix3::from_diagonal_element(0.5) * electric_tensor.trace()))
 }
 
@@ -99,12 +99,7 @@ pub fn green_function(
 ) -> Vector3<f32> {
     // The delta function right hand side
     let mut b = VectorField::new(size.x, size.y, size.z);
-    b.set(
-        point.x as isize,
-        point.y as isize,
-        point.z as isize,
-        polarization,
-    );
+    b[point] = polarization;
 
     // The operator
     let a = A::new(frequency, scalar_primary, scalar_secundary);
@@ -121,5 +116,5 @@ pub fn green_function(
         x = x + &alpha_a_r;
     }
 
-    x.at(point.x as isize, point.y as isize, point.z as isize)
+    x[point]
 }

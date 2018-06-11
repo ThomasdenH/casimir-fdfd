@@ -1,5 +1,5 @@
 use nalgebra::*;
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, Mul, Sub, Index, IndexMut};
 
 use scalarfield::ScalarField;
 
@@ -21,27 +21,6 @@ impl VectorField {
         }
     }
 
-    /// Get the vector at location x, y and z
-    pub fn at(&self, x: isize, y: isize, z: isize) -> Vector3<f32> {
-        if x < 0 || x as usize >= self.nx
-            || y < 0 || y as usize >= self.ny
-            || z < 0 || z as usize >= self.nz
-        {
-            Vector3::new(0.0, 0.0, 0.0)
-        } else {
-            self.vectors[x as usize + self.nx * (y as usize + self.ny * (z as usize))]
-        }
-    }
-
-    pub fn set(&mut self, x: isize, y: isize, z: isize, value: Vector3<f32>) {
-        if x < 0 || x as usize >= self.nx
-            || y < 0 || y as usize >= self.ny
-            || z < 0 || z as usize >= self.nz {
-            return;
-        }
-        self.vectors[x as usize + self.nx * (y as usize + self.ny * (z as usize))] = value;
-    }
-
     /// Calculates the positive curl of a vector field. The new positions will be the centers of the
     /// Yee grid planes formed between four grid edges.
     pub fn curl_positive(&self) -> VectorField {
@@ -55,12 +34,12 @@ impl VectorField {
                     (0..self.ny as isize).flat_map(move |y| {
                         (0..self.nx as isize).map(move |x| {
                             Vector3::new(
-                                self.at(x, y + 1, z).z - self.at(x, y, z).z - self.at(x, y, z + 1).y
-                                    + self.at(x, y, z).y,
-                                self.at(x, y, z + 1).x - self.at(x, y, z).x - self.at(x + 1, y, z).z
-                                    + self.at(x, y, z).z,
-                                self.at(x + 1, y, z).y - self.at(x, y, z).y - self.at(x, y + 1, z).x
-                                    - self.at(x, y, z).x,
+                                self[(x, y + 1, z)].z - self[(x, y, z)].z
+                                    - self[(x, y, z + 1)].y + self[(x, y, z)].y,
+                                self[(x, y, z + 1)].x - self[(x, y, z)].x
+                                    - self[(x + 1, y, z)].z + self[(x, y, z)].z,
+                                self[(x + 1, y, z)].y - self[(x, y, z)].y
+                                    - self[(x, y + 1, z)].x + self[(x, y, z)].x,
                             )
                         })
                     })
@@ -80,12 +59,12 @@ impl VectorField {
                     (0..self.ny as isize).flat_map(move |y| {
                         (0..self.nx as isize).map(move |x| {
                             Vector3::new(
-                                self.at(x, y, z).z - self.at(x, y - 1, z).z - self.at(x, y, z).y
-                                    + self.at(x, y, z - 1).y,
-                                self.at(x, y, z).x - self.at(x, y, z - 1).x - self.at(x, y, z).z
-                                    + self.at(x - 1, y, z).z,
-                                self.at(x, y, z).y - self.at(x - 1, y, z).y - self.at(x, y, z).x
-                                    - self.at(x, y - 1, z).x,
+                                self[(x, y, z)].z - self[(x, y - 1, z)].z
+                                    - self[(x, y, z)].y + self[(x, y, z - 1)].y,
+                                self[(x, y, z)].x - self[(x, y, z - 1)].x
+                                    - self[(x, y, z)].z + self[(x - 1, y, z)].z,
+                                self[(x, y, z)].y - self[(x - 1, y, z)].y
+                                    - self[(x, y, z)].x + self[(x, y - 1, z)].x,
                             )
                         })
                     })
@@ -144,5 +123,62 @@ impl Mul<VectorField> for f32 {
     fn mul(self, mut rhs: VectorField) -> Self::Output {
         rhs.vectors = rhs.vectors.map(|a| a * self);
         rhs
+    }
+}
+
+impl Index<(usize, usize, usize)> for VectorField {
+    type Output = Vector3<f32>;
+
+    fn index(&self, index: (usize, usize, usize)) -> &Vector3<f32> {
+        let (x, y, z) = index;
+        assert!(x < self.nx && y < self.ny && z < self.nz);
+        &self.vectors[x + self.nx * (y + self.ny * z)]
+    }
+}
+
+impl Index<(isize, isize, isize)> for VectorField {
+    type Output = Vector3<f32>;
+
+    fn index(&self, index: (isize, isize, isize)) -> &Vector3<f32> {
+        let (x, y, z) = index;
+
+        // Implementing periodic boundary conditions
+        let nx = self.nx as isize;
+        let ny = self.ny as isize;
+        let nz = self.nz as isize;
+        let x: usize = (((x % nx) + nx) % nx) as usize;
+        let y: usize = (((y % ny) + ny) % ny) as usize;
+        let z: usize = (((z % nz) + nz) % nz) as usize;
+        &self[(x, y, z)]
+    }
+}
+
+impl Index<Point3<usize>> for VectorField {
+    type Output = Vector3<f32>;
+
+    fn index(&self, index: Point3<usize>) -> &Vector3<f32> {
+        &self[(index.x, index.y, index.z)]
+    }
+}
+
+impl Index<Point3<isize>> for VectorField {
+    type Output = Vector3<f32>;
+
+    fn index(&self, index: Point3<isize>) -> &Vector3<f32> {
+        &self[(index.x, index.y, index.z)]
+    }
+}
+
+impl IndexMut<(usize, usize, usize)> for VectorField {
+    fn index_mut<'a>(&'a mut self, index: (usize, usize, usize)) -> &'a mut Vector3<f32> {
+        let (x, y, z) = index;
+        assert!(x < self.nx && y < self.ny && z < self.nz);
+        &mut self.vectors[x + self.nx * (y + self.ny * z)]
+    }
+}
+
+impl IndexMut<Point3<usize>> for VectorField {
+    fn index_mut<'a>(&'a mut self, index: Point3<usize>) -> &'a mut Vector3<f32> {
+        &mut self[(index.x, index.y, index.z)]
     }
 }
