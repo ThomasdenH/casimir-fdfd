@@ -113,7 +113,7 @@ pub fn green_function(
         let a_p = &a * p.clone();
         let alpha = rsold / (&p * &a_p);
         x += &(alpha * p.clone());
-        r = r - &(alpha * a_p);
+        r -= &(alpha * a_p);
         let rsnew = &r * &r;
         if rsnew.sqrt() < 0.01 {
             break;

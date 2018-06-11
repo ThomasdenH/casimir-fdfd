@@ -56,7 +56,7 @@ impl<'a> Add<&'a ScalarField> for ScalarField {
     type Output = ScalarField;
 
     fn add(mut self, rhs: &'a ScalarField) -> ScalarField {
-        assert!(self.nx == rhs.nx && self.ny == rhs.ny && self.nz == rhs.nz);
+        debug_assert!(self.nx == rhs.nx && self.ny == rhs.ny && self.nz == rhs.nz);
         self.scalars += &rhs.scalars;
         self
     }
@@ -67,7 +67,7 @@ impl Index<(usize, usize, usize)> for ScalarField {
 
     fn index(&self, index: (usize, usize, usize)) -> &f64 {
         let (x, y, z) = index;
-        assert!(x < self.nx && y < self.ny && z < self.nz);
+        debug_assert!(x < self.nx && y < self.ny && z < self.nz);
         &self.scalars[x as usize + self.nx * (y as usize + self.ny * (z as usize))]
     }
 }
