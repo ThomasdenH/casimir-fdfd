@@ -2,8 +2,7 @@ use greenfunctions::stress_tensor;
 use nalgebra::*;
 use scalarfield::ScalarField;
 use rayon::iter::*;
-
-const OBJECT_PERMITIVITY: f32 = 1000_000.0;
+use std::f64::consts::PI;
 
 pub struct BoundingBox {
     pub x0: usize,
@@ -38,11 +37,7 @@ pub struct World {
     nx: usize,
     ny: usize,
     nz: usize,
-    bboxes: Vec<BoundingBox>,
-    perm: ScalarField,
-    mag: ScalarField,
-    inv_perm: ScalarField,
-    inv_mag: ScalarField,
+    bboxes: Vec<BoundingBox>
 }
 
 impl World {
@@ -51,11 +46,7 @@ impl World {
             nx,
             ny,
             nz,
-            bboxes: Vec::new(),
-            perm: ScalarField::ones(nx, ny, nz),
-            mag: ScalarField::ones(nx, ny, nz),
-            inv_perm: ScalarField::ones(nx, ny, nz),
-            inv_mag: ScalarField::ones(nx, ny, nz),
+            bboxes: Vec::new()
         }
     }
 
@@ -64,38 +55,26 @@ impl World {
         let bbox = BoundingBox::new(x0, y0, z0, x1, y1, z1);
         assert!(!self.bboxes.iter().any(|b| b.intersects(&bbox)));
         self.bboxes.push(bbox);
-        for x in x0..x1 {
-            for y in y0..y1 {
-                for z in z0..z1 {
-                    self.perm
-                        .set(x as isize, y as isize, z as isize, OBJECT_PERMITIVITY);
-                    self.inv_perm
-                        .set(x as isize, y as isize, z as isize, 1.0 / OBJECT_PERMITIVITY);
-                }
-            }
-        }
     }
 
-    pub fn force_on(&self, i: usize) -> Vector3<f32> {
+    pub fn force_on(&self, i: usize) -> Vector3<f64> {
         // The maximum frequency is given by (speed of light) / (grid element size)
-        let start_freq = 0.01;
+        let start_freq = 0.1;
         let end_freq = 1.0;
         let start_force = self.force_on_for_freq(i, start_freq);
         let end_force = self.force_on_for_freq(i, end_freq);
 
-        let force = self.integrate_force_between_frequencies(i, start_freq, end_freq, start_force, end_force);
-
-        force
+        self.integrate_force_between_frequencies(i, start_freq, end_freq, start_force, end_force)
     }
 
     pub fn integrate_force_between_frequencies(
         &self,
         i: usize,
-        start_frequency: f32,
-        end_frequency: f32,
-        start_value: Vector3<f32>,
-        end_value: Vector3<f32>
-    ) -> Vector3<f32> {
+        start_frequency: f64,
+        end_frequency: f64,
+        start_value: Vector3<f64>,
+        end_value: Vector3<f64>
+    ) -> Vector3<f64> {
         // Do a recursive integration. The function should be smooth.
         if (start_value - end_value).norm() < 0.05 {
             // The difference is small enough to do a line approximation
@@ -120,7 +99,23 @@ impl World {
         }
     }
 
-    fn force_on_for_freq(&self, i: usize, frequency: f32) -> Vector3<f32> {
+    fn force_on_for_freq(&self, i: usize, frequency: f64) -> Vector3<f64> {
+        let mut perm = ScalarField::ones(self.nx, self.ny, self.nz);
+        let mag = ScalarField::ones(self.nx, self.ny, self.nz);
+        let permitivity = World::permitivity(frequency);
+        println!("{}", permitivity);
+        for bbox in &self.bboxes {
+            for x in bbox.x0..bbox.x1 {
+                for y in bbox.y0..bbox.y1 {
+                    for z in bbox.z0..bbox.z1 {
+                        perm.set(x as isize, y as isize, z as isize, permitivity);
+                    }
+                }
+            }
+        }
+        let mut inv_perm = perm.clone();
+        inv_perm.multiplicative_invert();
+
         let size = Vector3::new(self.nx, self.ny, self.nz);
         let mut force = Vector3::new(0.0, 0.0, 0.0);
 
@@ -129,43 +124,47 @@ impl World {
 
         println!("Force on for frequency {}.", frequency);
 
-        force += (bbox.x0..bbox.x1).flat_map(|x|
-            (bbox.y0..bbox.y1).map(move |y| {
+        let perm = &perm;
+        let mag = &mag;
+        let inv_perm = &inv_perm;
+
+        force += (bbox.x0..bbox.x1).into_par_iter().flat_map(|x|
+            (bbox.y0..bbox.y1).into_par_iter().map(move |y| {
                 // Top face
                 let a = stress_tensor(
                     frequency,
                     Point3::new(x, y, bbox.z1 + 1),
-                    &self.perm,
-                    &self.mag,
-                    &self.inv_perm,
-                    &self.inv_mag,
+                    &perm,
+                    &mag,
+                    &inv_perm,
+                    &mag,
                     size,
                 ) * Vector3::new(0.0, 0.0, 1.0);
 
                 let b = stress_tensor(
                     frequency,
                     Point3::new(x, y, bbox.z0 - 1),
-                    &self.perm,
-                    &self.mag,
-                    &self.inv_perm,
-                    &self.inv_mag,
+                    &perm,
+                    &mag,
+                    &inv_perm,
+                    &mag,
                     size,
                 ) * Vector3::new(0.0, 0.0, -1.0);
 
                 a + b
             })
-        ).sum::<Vector3<f32>>();
+        ).sum::<Vector3<f64>>();
 
-        force += (bbox.x0..bbox.x1).flat_map(|x|
-            (bbox.z0..bbox.z1).map(move |z| {
+        force += (bbox.x0..bbox.x1).into_par_iter().flat_map(|x|
+            (bbox.z0..bbox.z1).into_par_iter().map(move |z| {
                 // Front
                 let a = stress_tensor(
                     frequency,
                     Point3::new(x, bbox.y1 + 1, z),
-                    &self.perm,
-                    &self.mag,
-                    &self.inv_perm,
-                    &self.inv_mag,
+                    &perm,
+                    &mag,
+                    &inv_perm,
+                    &mag,
                     size,
                 ) * Vector3::new(0.0, 1.0, 0.0);
 
@@ -173,27 +172,27 @@ impl World {
                 let b = stress_tensor(
                     frequency,
                     Point3::new(x, bbox.y0 - 1, z),
-                    &self.perm,
-                    &self.mag,
-                    &self.inv_perm,
-                    &self.inv_mag,
+                    &perm,
+                    &mag,
+                    &inv_perm,
+                    &mag,
                     size,
                 ) * Vector3::new(0.0, -1.0, 0.0);
 
                 a + b
             })
-        ).sum::<Vector3<f32>>();
+        ).sum::<Vector3<f64>>();
 
-        force += (bbox.y0..bbox.y1).flat_map(|y|
-            (bbox.z0..bbox.z1).map(move |z| {
+        force += (bbox.y0..bbox.y1).into_par_iter().flat_map(|y|
+            (bbox.z0..bbox.z1).into_par_iter().map(move |z| {
                 // Right
                 let a = stress_tensor(
                     frequency,
                     Point3::new(bbox.x1 + 1, y, z),
-                    &self.perm,
-                    &self.mag,
-                    &self.inv_perm,
-                    &self.inv_mag,
+                    &perm,
+                    &mag,
+                    &inv_perm,
+                    &mag,
                     size,
                 ) * Vector3::new(1.0, 0.0, 0.0);
 
@@ -201,17 +200,36 @@ impl World {
                 let b = stress_tensor(
                     frequency,
                     Point3::new(bbox.x0 - 1, y, z),
-                    &self.perm,
-                    &self.mag,
-                    &self.inv_perm,
-                    &self.inv_mag,
+                    &perm,
+                    &mag,
+                    &inv_perm,
+                    &mag,
                     size,
                 ) * Vector3::new(-1.0, 0.0, 0.0);
 
                 a + b
             })
-        ).sum::<Vector3<f32>>();
+        ).sum::<Vector3<f64>>();
+
+        println!("Found force: {:?}", force);
 
         force
+    }
+
+    fn permitivity(freq: f64) -> f64 {
+        let omega_p = 7.79;
+        let omega_tau = 48.8;
+        let mut total = 0.0;
+        for i in 0.. {
+            let omega = f64::from(i) * 0.1;
+            let added = (omega_p * omega_p * omega_tau)
+                / (omega * omega + omega_tau * omega_tau)
+                / (omega * omega + freq * freq) * 0.1;
+            total += added;
+            if added < 0.001 {
+                break;
+            }
+        }
+        1.0 + 2.0 / PI * total
     }
 }

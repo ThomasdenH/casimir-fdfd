@@ -1,6 +1,6 @@
 use nalgebra::*;
 use scalarfield::ScalarField;
-use std::f32::consts::PI;
+use std::f64::consts::PI;
 use std::ops::Mul;
 use vectorfield::VectorField;
 
@@ -8,12 +8,12 @@ use vectorfield::VectorField;
 struct A<'a> {
     scalar_primary: &'a ScalarField,
     scalar_secundary: &'a ScalarField,
-    frequency_2: f32,
+    frequency_2: f64,
 }
 
 impl<'b> A<'b> {
     fn new<'a>(
-        frequency: f32,
+        frequency: f64,
         scalar_primary: &'a ScalarField,
         scalar_secundary: &'a ScalarField,
     ) -> A<'a> {
@@ -29,21 +29,21 @@ impl<'a, 'b> Mul<VectorField> for &'a A<'b> {
     type Output = VectorField;
 
     fn mul(self, x: VectorField) -> Self::Output {
-        let curl_part = (x.curl_positive() * self.scalar_secundary).curl_negative();
+        let curl_part = (x.clone().curl_positive() * self.scalar_secundary).curl_negative();
         let scalar_part = self.frequency_2 * (x * self.scalar_primary);
         curl_part + &scalar_part
     }
 }
 
 pub fn stress_tensor(
-    frequency: f32,
+    frequency: f64,
     point: Point3<usize>,
     electric_field: &ScalarField,
     magnetic_field: &ScalarField,
     inv_electric_field: &ScalarField,
     inv_magnetic_field: &ScalarField,
     size: Vector3<usize>,
-) -> Matrix3<f32> {
+) -> Matrix3<f64> {
     let electric_tensor = green_tensor(frequency, point, electric_field, inv_magnetic_field, size);
     let magnetic_tensor = green_tensor(frequency, point, magnetic_field, inv_electric_field, size);
 
@@ -55,12 +55,12 @@ pub fn stress_tensor(
 }
 
 pub fn green_tensor(
-    frequency: f32,
+    frequency: f64,
     point: Point3<usize>,
     scalar_primary: &ScalarField,
     scalar_secundary: &ScalarField,
     size: Vector3<usize>,
-) -> Matrix3<f32> {
+) -> Matrix3<f64> {
     Matrix3::from_columns(&[
         green_function(
             frequency,
@@ -90,13 +90,13 @@ pub fn green_tensor(
 }
 
 pub fn green_function(
-    frequency: f32,
+    frequency: f64,
     point: Point3<usize>,
-    polarization: Vector3<f32>,
+    polarization: Vector3<f64>,
     scalar_primary: &ScalarField,
     scalar_secundary: &ScalarField,
     size: Vector3<usize>,
-) -> Vector3<f32> {
+) -> Vector3<f64> {
     // The delta function right hand side
     let mut b = VectorField::new(size.x, size.y, size.z);
     b[point] = polarization;
@@ -105,12 +105,21 @@ pub fn green_function(
     let a = A::new(frequency, scalar_primary, scalar_secundary);
 
     let mut x = VectorField::new(size.x, size.y, size.z);
+    let mut r = &b - &a * x.clone();
+    let mut p = r.clone();
+    let mut rsold = &r * &r;
 
-    for i in 0..20 {
-        let r = b.clone() - &(&a * x.clone());
-        let alpha = (&r * &r) / (&r * &(&a * r.clone()));
-        x = x + &(alpha * r);
+    for _ in 0..(size.x * size.y * size.z) {
+        let a_p = &a * p.clone();
+        let alpha = rsold / (&p * &a_p);
+        x += &(alpha * p.clone());
+        r = r - &(alpha * a_p);
+        let rsnew = &r * &r;
+        if rsnew.sqrt() < 0.01 {
+            break;
+        }
+        p = r.clone() + &((rsnew / rsold) * p);
+        rsold = rsnew;
     }
-
     x[point]
 }
