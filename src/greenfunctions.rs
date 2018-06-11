@@ -29,8 +29,8 @@ impl<'a, 'b> Mul<VectorField> for &'a A<'b> {
     type Output = VectorField;
 
     fn mul(self, x: VectorField) -> Self::Output {
-        let scalar_part = self.frequency_2 * (x.clone() * self.scalar_primary);
         let curl_part = (x.curl_positive() * self.scalar_secundary).curl_negative();
+        let scalar_part = self.frequency_2 * (x * self.scalar_primary);
         curl_part + &scalar_part
     }
 }
@@ -106,14 +106,10 @@ pub fn green_function(
 
     let mut x = VectorField::new(size.x, size.y, size.z);
 
-    let mut r = b - &(&a * x.clone());
-
-    for _ in 0..*size.iter().max().unwrap() {
-        let a_r = &a * r.clone();
-        let alpha = (&r * &r) / (&r * &a_r);
-        let alpha_a_r = alpha * a_r;
-        r = r - &alpha_a_r;
-        x = x + &alpha_a_r;
+    for i in 0..20 {
+        let r = b.clone() - &(&a * x.clone());
+        let alpha = (&r * &r) / (&r * &(&a * r.clone()));
+        x = x + &(alpha * r);
     }
 
     x[point]

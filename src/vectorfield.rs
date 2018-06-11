@@ -99,7 +99,13 @@ impl<'a> Mul<&'a ScalarField> for VectorField {
 
     fn mul(mut self, rhs: &'a ScalarField) -> VectorField {
         assert!(self.nx == rhs.nx && self.ny == rhs.ny && self.nz == rhs.nz);
-        self.vectors = self.vectors.zip_map(&rhs.scalars, |a, b| a * b);
+        for x in 0..self.nx {
+            for y in 0..self.ny {
+                for z in 0..self.nz {
+                    self[(x, y, z)] *= rhs[(x, y, z)];
+                }
+            }
+        }
         self
     }
 }
@@ -121,7 +127,13 @@ impl Mul<VectorField> for f32 {
     type Output = VectorField;
 
     fn mul(self, mut rhs: VectorField) -> Self::Output {
-        rhs.vectors = rhs.vectors.map(|a| a * self);
+        for x in 0..rhs.nx {
+            for y in 0..rhs.ny {
+                for z in 0..rhs.nz {
+                    rhs[(x, y, z)] *= self;
+                }
+            }
+        }
         rhs
     }
 }
