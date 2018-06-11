@@ -1,7 +1,7 @@
 use greenfunctions::stress_tensor;
 use nalgebra::*;
 use scalarfield::ScalarField;
-use pbr::ProgressBar;
+use rayon::iter::*;
 
 const OBJECT_PERMITIVITY: f32 = 1000_000.0;
 
@@ -78,7 +78,6 @@ impl World {
 
     pub fn force_on(&self, i: usize) -> Vector3<f32> {
         // The maximum frequency is given by (speed of light) / (grid element size)
-
         let start_freq = 0.01;
         let end_freq = 1.0;
         let start_force = self.force_on_for_freq(i, start_freq);
@@ -98,7 +97,7 @@ impl World {
         end_value: Vector3<f32>
     ) -> Vector3<f32> {
         // Do a recursive integration. The function should be smooth.
-        if (start_value - end_value).norm() < 0.001 {
+        if (start_value - end_value).norm() < 0.05 {
             // The difference is small enough to do a line approximation
             0.5 * (start_value + end_value) * (end_frequency - start_frequency)
         } else {
@@ -122,18 +121,18 @@ impl World {
     }
 
     fn force_on_for_freq(&self, i: usize, frequency: f32) -> Vector3<f32> {
-        let mut progress = ProgressBar::new(2 * (self.nx * self.ny + self.ny * self.nz + self.nz * self.nx) as u64);
-
         let size = Vector3::new(self.nx, self.ny, self.nz);
         let mut force = Vector3::new(0.0, 0.0, 0.0);
 
         // Integrate the force over the faces of the cube
         let bbox = &self.bboxes[i];
 
-        for x in bbox.x0..bbox.x1 {
-            for y in bbox.y0..bbox.y1 {
+        println!("Force on for frequency {}.", frequency);
+
+        force += (bbox.x0..bbox.x1).into_par_iter().flat_map(|x|
+            (bbox.y0..bbox.y1).into_par_iter().map(move |y| {
                 // Top face
-                force += stress_tensor(
+                let a = stress_tensor(
                     frequency,
                     Point3::new(x, y, bbox.z1 + 1),
                     &self.perm,
@@ -142,10 +141,8 @@ impl World {
                     &self.inv_mag,
                     size,
                 ) * Vector3::new(0.0, 0.0, 1.0);
-                progress.inc();
 
-                // Bottom face
-                force += stress_tensor(
+                let b = stress_tensor(
                     frequency,
                     Point3::new(x, y, bbox.z0 - 1),
                     &self.perm,
@@ -154,14 +151,15 @@ impl World {
                     &self.inv_mag,
                     size,
                 ) * Vector3::new(0.0, 0.0, -1.0);
-                progress.inc();
-            }
-        }
 
-        for x in bbox.x0..bbox.x1 {
-            for z in bbox.z0..bbox.z1 {
+                a + b
+            })
+        ).sum::<Vector3<f32>>();
+
+        force += (bbox.x0..bbox.x1).into_par_iter().flat_map(|x|
+            (bbox.z0..bbox.z1).into_par_iter().map(move |z| {
                 // Front
-                force += stress_tensor(
+                let a = stress_tensor(
                     frequency,
                     Point3::new(x, bbox.y1 + 1, z),
                     &self.perm,
@@ -170,10 +168,9 @@ impl World {
                     &self.inv_mag,
                     size,
                 ) * Vector3::new(0.0, 1.0, 0.0);
-                progress.inc();
 
                 // Back
-                force += stress_tensor(
+                let b = stress_tensor(
                     frequency,
                     Point3::new(x, bbox.y0 - 1, z),
                     &self.perm,
@@ -182,14 +179,15 @@ impl World {
                     &self.inv_mag,
                     size,
                 ) * Vector3::new(0.0, -1.0, 0.0);
-                progress.inc();
-            }
-        }
 
-        for y in bbox.y0..bbox.y1 {
-            for z in bbox.z0..bbox.z1 {
-                // Front
-                force += stress_tensor(
+                a + b
+            })
+        ).sum::<Vector3<f32>>();
+
+        force += (bbox.y0..bbox.y1).into_par_iter().flat_map(|y|
+            (bbox.z0..bbox.z1).into_par_iter().map(move |z| {
+                // Right
+                let a = stress_tensor(
                     frequency,
                     Point3::new(bbox.x1 + 1, y, z),
                     &self.perm,
@@ -198,10 +196,9 @@ impl World {
                     &self.inv_mag,
                     size,
                 ) * Vector3::new(1.0, 0.0, 0.0);
-                progress.inc();
 
-                // Back
-                force += stress_tensor(
+                // Left
+                let b = stress_tensor(
                     frequency,
                     Point3::new(bbox.x0 - 1, y, z),
                     &self.perm,
@@ -210,11 +207,10 @@ impl World {
                     &self.inv_mag,
                     size,
                 ) * Vector3::new(-1.0, 0.0, 0.0);
-                progress.inc();
-            }
-        }
 
-        progress.finish();
+                a + b
+            })
+        ).sum::<Vector3<f32>>();
 
         force
     }

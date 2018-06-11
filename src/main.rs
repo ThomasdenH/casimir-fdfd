@@ -1,5 +1,6 @@
 extern crate nalgebra;
 extern crate pbr;
+extern crate rayon;
 
 mod greenfunctions;
 mod scalarfield;
@@ -9,8 +10,8 @@ mod world;
 use world::World;
 
 fn main() {
-    let mut world = World::new(30, 30, 50);
-    world.add_box(10, 10, 10, 20, 20, 20);
-    world.add_box(10, 10, 30, 20, 20, 40);
+    let mut world = World::new(15, 15, 25);
+    world.add_box(5, 5, 5, 10, 10, 10);
+    world.add_box(5, 5, 15, 10, 10, 20);
     println!("{:?}", world.force_on(0));
 }

@@ -133,7 +133,7 @@ impl<'a, 'b> Mul<&'a VectorField> for &'b VectorField {
         self.vectors
             .iter()
             .zip(rhs.vectors.iter())
-            .map(|(a, b)| a.x * b.x + a.y * b.y + a.z * b.z)
+            .map(|(a, b)| a.dot(b))
             .sum()
     }
 }
