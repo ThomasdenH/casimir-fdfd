@@ -34,6 +34,7 @@ impl BoundingBox {
 }
 
 /// A struct representing the geometry
+#[derive(Eq, PartialEq, Clone, Debug, Hash)]
 pub struct World {
     nx: usize,
     ny: usize,
@@ -63,8 +64,8 @@ impl World {
     /// Compute the force on the n'th object.
     pub fn force_on(&self, i: usize) -> Vector3<f64> {
         // The maximum frequency is given by (speed of light) / (grid element size)
-        let start_freq = 0.001;
-        let end_freq = 10.0;
+        let start_freq = 0.01;
+        let end_freq = 1.0;
         let start_force = self.force_on_for_freq(i, start_freq);
         let end_force = self.force_on_for_freq(i, end_freq);
 
@@ -113,6 +114,8 @@ impl World {
             let perm = &self.permitivity_field(frequency, &vec![*bbox]);
             total_force -= self.force_on_for_freq_and_geometry(frequency, perm, &self.bboxes[i]);
         }
+
+        println!("Force for frequency {}: ({}, {}, {})", frequency, total_force.x, total_force.y, total_force.z);
 
         total_force
     }
@@ -186,8 +189,6 @@ impl World {
                 a + b
             })
         ).sum::<Vector3<f64>>();
-
-        println!("Force for frequency {}: ({}, {}, {})", frequency, total_force.x, total_force.y, total_force.z);
 
         total_force
     }

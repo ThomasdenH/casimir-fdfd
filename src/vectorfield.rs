@@ -84,7 +84,7 @@ impl<'a> Add<&'a VectorField> for VectorField {
     type Output = VectorField;
 
     fn add(mut self, f: &'a VectorField) -> Self::Output {
-        assert!(self.nx == f.nx && self.ny == f.ny && self.nz == f.nz);
+        debug_assert!(self.nx == f.nx && self.ny == f.ny && self.nz == f.nz);
         self.vectors += &f.vectors;
         self
     }
