@@ -5,19 +5,15 @@ use scalarfield::ScalarField;
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct VectorField {
-    pub nx: usize,
-    pub ny: usize,
-    pub nz: usize,
-    pub vectors: DVector<Vector3<f64>>,
+    size: Vector3<usize>,
+    vectors: DVector<Vector3<f64>>,
 }
 
 impl VectorField {
-    pub fn new(nx: usize, ny: usize, nz: usize) -> VectorField {
+    pub fn new(size: Vector3<usize>) -> VectorField {
         VectorField {
-            nx,
-            ny,
-            nz,
-            vectors: DVector::from_element(nx * ny * nz, Vector3::new(0.0, 0.0, 0.0)),
+            size,
+            vectors: DVector::from_element(size.x * size.y * size.z, Vector3::new(0.0, 0.0, 0.0)),
         }
     }
 
@@ -25,14 +21,12 @@ impl VectorField {
     /// Yee grid planes formed between four grid edges.
     pub fn curl_positive(&self) -> VectorField {
         VectorField {
-            nx: self.nx,
-            ny: self.ny,
-            nz: self.nz,
+            size: self.size,
             vectors: DVector::from_iterator(
-                self.nx * self.ny * self.nz,
-                (0..self.nz as isize).flat_map(|z| {
-                    (0..self.ny as isize).flat_map(move |y| {
-                        (0..self.nx as isize).map(move |x| {
+                self.vectors.len(),
+                (0..self.size.z as isize).flat_map(|z| {
+                    (0..self.size.y as isize).flat_map(move |y| {
+                        (0..self.size.z as isize).map(move |x| {
                             Vector3::new(
                                 self[(x, y + 1, z)].z - self[(x, y, z)].z
                                     - self[(x, y, z + 1)].y + self[(x, y, z)].y,
@@ -50,14 +44,12 @@ impl VectorField {
 
     pub fn curl_negative(&self) -> VectorField {
         VectorField {
-            nx: self.nx,
-            ny: self.ny,
-            nz: self.nz,
+            size: self.size,
             vectors: DVector::from_iterator(
-                self.nx * self.ny * self.nz,
-                (0..self.nz as isize).flat_map(|z| {
-                    (0..self.ny as isize).flat_map(move |y| {
-                        (0..self.nx as isize).map(move |x| {
+                self.vectors.len(),
+                (0..self.size.z as isize).flat_map(|z| {
+                    (0..self.size.y as isize).flat_map(move |y| {
+                        (0..self.size.x as isize).map(move |x| {
                             Vector3::new(
                                 self[(x, y, z)].z - self[(x, y - 1, z)].z
                                     - self[(x, y, z)].y + self[(x, y, z - 1)].y,
@@ -73,19 +65,17 @@ impl VectorField {
         }
     }
 
-    pub fn check_nan(&self) -> bool {
-        self.vectors.iter().any(|a| {
-            a.x.is_nan() || a.y.is_nan() || a.z.is_nan()
-        })
+    pub fn size(&self) -> Vector3<usize> {
+        self.size
     }
 }
 
 impl<'a> Add<&'a VectorField> for VectorField {
     type Output = VectorField;
 
-    fn add(mut self, f: &'a VectorField) -> Self::Output {
-        debug_assert!(self.nx == f.nx && self.ny == f.ny && self.nz == f.nz);
-        self.vectors += &f.vectors;
+    fn add(mut self, rhs: &'a VectorField) -> Self::Output {
+        debug_assert!(self.size == rhs.size);
+        self.vectors += &rhs.vectors;
         self
     }
 }
@@ -93,9 +83,9 @@ impl<'a> Add<&'a VectorField> for VectorField {
 impl<'a> Sub<&'a VectorField> for VectorField {
     type Output = VectorField;
 
-    fn sub(mut self, f: &'a VectorField) -> Self::Output {
-        debug_assert!(self.nx == f.nx && self.ny == f.ny && self.nz == f.nz);
-        self.vectors -= &f.vectors;
+    fn sub(mut self, rhs: &'a VectorField) -> Self::Output {
+        debug_assert!(self.size == rhs.size);
+        self.vectors -= &rhs.vectors;
         self
     }
 }
@@ -103,10 +93,10 @@ impl<'a> Sub<&'a VectorField> for VectorField {
 impl<'a> Sub<VectorField> for &'a VectorField {
     type Output = VectorField;
 
-    fn sub(self, mut f: VectorField) -> Self::Output {
-        debug_assert!(self.nx == f.nx && self.ny == f.ny && self.nz == f.nz);
-        f.vectors -= &self.vectors;
-        f
+    fn sub(self, mut rhs: VectorField) -> Self::Output {
+        debug_assert!(self.size == rhs.size);
+        rhs.vectors -= &self.vectors;
+        rhs
     }
 }
 
@@ -114,10 +104,10 @@ impl<'a> Mul<&'a ScalarField> for VectorField {
     type Output = VectorField;
 
     fn mul(mut self, rhs: &'a ScalarField) -> VectorField {
-        debug_assert!(self.nx == rhs.nx && self.ny == rhs.ny && self.nz == rhs.nz);
-        for x in 0..self.nx {
-            for y in 0..self.ny {
-                for z in 0..self.nz {
+        debug_assert!(self.size() == rhs.size());
+        for x in 0..self.size().x {
+            for y in 0..self.size().y {
+                for z in 0..self.size().z {
                     self[(x, y, z)] *= rhs[(x, y, z)];
                 }
             }
@@ -130,10 +120,10 @@ impl<'a> Div<&'a ScalarField> for VectorField {
     type Output = VectorField;
 
     fn div(mut self, rhs: &'a ScalarField) -> VectorField {
-        debug_assert!(self.nx == rhs.nx && self.ny == rhs.ny && self.nz == rhs.nz);
-        for x in 0..self.nx {
-            for y in 0..self.ny {
-                for z in 0..self.nz {
+        debug_assert!(self.size() == rhs.size());
+        for x in 0..self.size().x {
+            for y in 0..self.size().y {
+                for z in 0..self.size().z {
                     self[(x, y, z)] /= rhs[(x, y, z)];
                 }
             }
@@ -146,11 +136,11 @@ impl<'a, 'b> Mul<&'a VectorField> for &'b VectorField {
     type Output = f64;
 
     fn mul(self, rhs: &'a VectorField) -> Self::Output {
-        debug_assert!(self.nx == rhs.nx && self.ny == rhs.ny && self.nz == rhs.nz);
         let mut sum = 0.0;
-        for x in 0..self.nx {
-            for y in 0..self.ny {
-                for z in 0..self.nz {
+        debug_assert!(self.size() == rhs.size());
+        for x in 0..self.size().x {
+            for y in 0..self.size().y {
+                for z in 0..self.size().z {
                     sum += self[(x, y, z)].dot(&rhs[(x, y, z)]);
                 }
             }
@@ -163,9 +153,9 @@ impl Mul<VectorField> for f64 {
     type Output = VectorField;
 
     fn mul(self, mut rhs: VectorField) -> Self::Output {
-        for x in 0..rhs.nx {
-            for y in 0..rhs.ny {
-                for z in 0..rhs.nz {
+        for x in 0..rhs.size().x {
+            for y in 0..rhs.size().y {
+                for z in 0..rhs.size().z {
                     rhs[(x, y, z)] *= self;
                 }
             }
@@ -179,8 +169,8 @@ impl Index<(usize, usize, usize)> for VectorField {
 
     fn index(&self, index: (usize, usize, usize)) -> &Vector3<f64> {
         let (x, y, z) = index;
-        debug_assert!(x < self.nx && y < self.ny && z < self.nz);
-        &self.vectors[x + self.nx * (y + self.ny * z)]
+        debug_assert!(x < self.size.x && y < self.size.y && z < self.size.z);
+        &self.vectors[x + self.size.x * (y + self.size.y * z)]
     }
 }
 
@@ -191,9 +181,9 @@ impl Index<(isize, isize, isize)> for VectorField {
         let (x, y, z) = index;
 
         // Implementing periodic boundary conditions
-        let nx = self.nx as isize;
-        let ny = self.ny as isize;
-        let nz = self.nz as isize;
+        let nx = self.size.x as isize;
+        let ny = self.size.y as isize;
+        let nz = self.size.z as isize;
         let x: usize = (((x % nx) + nx) % nx) as usize;
         let y: usize = (((y % ny) + ny) % ny) as usize;
         let z: usize = (((z % nz) + nz) % nz) as usize;
@@ -220,8 +210,8 @@ impl Index<Point3<isize>> for VectorField {
 impl IndexMut<(usize, usize, usize)> for VectorField {
     fn index_mut<'a>(&'a mut self, index: (usize, usize, usize)) -> &'a mut Vector3<f64> {
         let (x, y, z) = index;
-        debug_assert!(x < self.nx && y < self.ny && z < self.nz);
-        &mut self.vectors[x + self.nx * (y + self.ny * z)]
+        debug_assert!(x < self.size.x && y < self.size.y && z < self.size.z);
+        &mut self.vectors[x + self.size.x * (y + self.size.y * z)]
     }
 }
 
@@ -240,12 +230,12 @@ impl Neg for VectorField {
 }
 
 impl<'a> AddAssign<&'a VectorField> for VectorField {
-    fn add_assign(&mut self, other: &VectorField) {
-        debug_assert!(self.nx == other.nx && self.ny == other.ny && self.nz == other.nz);
-        for x in 0..self.nx {
-            for y in 0..self.ny {
-                for z in 0..self.nz {
-                    self[(x, y, z)] += other[(x, y, z)];
+    fn add_assign(&mut self, rhs: &VectorField) {
+        debug_assert!(self.size == rhs.size);
+        for x in 0..self.size().x {
+            for y in 0..self.size().y {
+                for z in 0..self.size().z {
+                    self[(x, y, z)] += rhs[(x, y, z)];
                 }
             }
         }
@@ -253,12 +243,12 @@ impl<'a> AddAssign<&'a VectorField> for VectorField {
 }
 
 impl<'a> SubAssign<&'a VectorField> for VectorField {
-    fn sub_assign(&mut self, other: &VectorField) {
-        debug_assert!(self.nx == other.nx && self.ny == other.ny && self.nz == other.nz);
-        for x in 0..self.nx {
-            for y in 0..self.ny {
-                for z in 0..self.nz {
-                    self[(x, y, z)] -= other[(x, y, z)];
+    fn sub_assign(&mut self, rhs: &VectorField) {
+        debug_assert!(self.size == rhs.size);
+        for x in 0..self.size().x {
+            for y in 0..self.size().y {
+                for z in 0..self.size().z {
+                    self[(x, y, z)] -= rhs[(x, y, z)];
                 }
             }
         }

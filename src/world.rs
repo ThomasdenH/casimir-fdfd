@@ -36,26 +36,22 @@ impl BoundingBox {
 /// A struct representing the geometry
 #[derive(Eq, PartialEq, Clone, Debug, Hash)]
 pub struct World {
-    nx: usize,
-    ny: usize,
-    nz: usize,
+    size: Vector3<usize>,
     bboxes: Vec<BoundingBox>
 }
 
 impl World {
     /// Create a new empty world.
-    pub fn new(nx: usize, ny: usize, nz: usize) -> World {
+    pub fn new(size: Vector3<usize>) -> World {
         World {
-            nx,
-            ny,
-            nz,
+            size,
             bboxes: Vec::new()
         }
     }
 
     /// Add a box to this world.
     pub fn add_box(&mut self, x0: usize, y0: usize, z0: usize, x1: usize, y1: usize, z1: usize) {
-        debug_assert!(x0 < x1 && y0 < y1 && z0 < z1 && x1 < self.nx && y1 < self.ny && z1 < self.nz);
+        debug_assert!(x0 < x1 && y0 < y1 && z0 < z1 && x1 < self.size.x && y1 < self.size.y && z1 < self.size.z);
         let bbox = BoundingBox::new(x0, y0, z0, x1, y1, z1);
         debug_assert!(!self.bboxes.iter().any(|b| b.intersects(&bbox)));
         self.bboxes.push(bbox);
@@ -121,7 +117,6 @@ impl World {
     }
 
     fn force_on_for_freq_and_geometry(&self, frequency: f64, perm: &ScalarField, bbox: &BoundingBox) -> Vector3<f64> {
-        let size = Vector3::new(self.nx, self.ny, self.nz);
         let mut total_force = Vector3::new(0.0, 0.0, 0.0);
 
         // Integrate the force over the faces of the cube
@@ -132,14 +127,14 @@ impl World {
                     frequency,
                     Point3::new(x, y, bbox.z1 + 1),
                     &perm,
-                    size,
+                    self.size,
                 ) * Vector3::new(0.0, 0.0, 1.0);
 
                 let b = stress_tensor(
                     frequency,
                     Point3::new(x, y, bbox.z0 - 1),
                     &perm,
-                    size,
+                    self.size,
                 ) * Vector3::new(0.0, 0.0, -1.0);
 
                 a + b
@@ -153,7 +148,7 @@ impl World {
                     frequency,
                     Point3::new(x, bbox.y1 + 1, z),
                     &perm,
-                    size,
+                    self.size,
                 ) * Vector3::new(0.0, 1.0, 0.0);
 
                 // Back
@@ -161,7 +156,7 @@ impl World {
                     frequency,
                     Point3::new(x, bbox.y0 - 1, z),
                     &perm,
-                    size,
+                    self.size,
                 ) * Vector3::new(0.0, -1.0, 0.0);
 
                 a + b
@@ -175,7 +170,7 @@ impl World {
                     frequency,
                     Point3::new(bbox.x1 + 1, y, z),
                     &perm,
-                    size,
+                    self.size,
                 ) * Vector3::new(1.0, 0.0, 0.0);
 
                 // Left
@@ -183,7 +178,7 @@ impl World {
                     frequency,
                     Point3::new(bbox.x0 - 1, y, z),
                     &perm,
-                    size,
+                    self.size,
                 ) * Vector3::new(-1.0, 0.0, 0.0);
 
                 a + b
@@ -195,7 +190,7 @@ impl World {
 
     /// Returns a scalar field representing the permitivity of a vector of bounding boxes.
     fn permitivity_field(&self, freq: f64, boxes: &Vec<BoundingBox>) -> ScalarField {
-        let mut permitivity_field = ScalarField::ones(self.nx, self.ny, self.nz);
+        let mut permitivity_field = ScalarField::ones(self.size);
         let permitivity = World::gold_permitivity(freq);
         for bbox in boxes {
             for x in bbox.x0..bbox.x1 {

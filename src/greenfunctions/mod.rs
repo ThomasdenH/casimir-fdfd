@@ -66,13 +66,13 @@ pub fn green_function(
     operator_type: OperatorType
 ) -> Vector3<f64> {
     // The delta function right hand side
-    let mut b = VectorField::new(size.x, size.y, size.z);
+    let mut b = VectorField::new(size);
     b[point] = polarization;
 
     // The operator
     let a = Operator::new(frequency, permitivity, operator_type);
 
-    let mut x = VectorField::new(size.x, size.y, size.z);
+    let mut x = VectorField::new(size);
     let mut r = &b - &a * x.clone();
     let mut p = r.clone();
     let mut rsold = &r * &r;
