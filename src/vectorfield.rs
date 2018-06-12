@@ -1,5 +1,5 @@
 use nalgebra::*;
-use std::ops::{Add, Mul, Sub, Index, IndexMut, Neg, AddAssign, SubAssign};
+use std::ops::{Add, Mul, Sub, Index, IndexMut, Neg, AddAssign, SubAssign, Div};
 
 use scalarfield::ScalarField;
 
@@ -119,6 +119,22 @@ impl<'a> Mul<&'a ScalarField> for VectorField {
             for y in 0..self.ny {
                 for z in 0..self.nz {
                     self[(x, y, z)] *= rhs[(x, y, z)];
+                }
+            }
+        }
+        self
+    }
+}
+
+impl<'a> Div<&'a ScalarField> for VectorField {
+    type Output = VectorField;
+
+    fn div(mut self, rhs: &'a ScalarField) -> VectorField {
+        debug_assert!(self.nx == rhs.nx && self.ny == rhs.ny && self.nz == rhs.nz);
+        for x in 0..self.nx {
+            for y in 0..self.ny {
+                for z in 0..self.nz {
+                    self[(x, y, z)] /= rhs[(x, y, z)];
                 }
             }
         }

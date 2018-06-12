@@ -4,6 +4,7 @@ use scalarfield::ScalarField;
 use rayon::iter::*;
 use std::f64::consts::PI;
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct BoundingBox {
     pub x0: usize,
     pub y0: usize,
@@ -41,6 +42,7 @@ pub struct World {
 }
 
 impl World {
+    /// Create a new empty world.
     pub fn new(nx: usize, ny: usize, nz: usize) -> World {
         World {
             nx,
@@ -50,6 +52,7 @@ impl World {
         }
     }
 
+    /// Add a box to this world.
     pub fn add_box(&mut self, x0: usize, y0: usize, z0: usize, x1: usize, y1: usize, z1: usize) {
         debug_assert!(x0 < x1 && y0 < y1 && z0 < z1 && x1 < self.nx && y1 < self.ny && z1 < self.nz);
         let bbox = BoundingBox::new(x0, y0, z0, x1, y1, z1);
@@ -57,10 +60,11 @@ impl World {
         self.bboxes.push(bbox);
     }
 
+    /// Compute the force on the n'th object.
     pub fn force_on(&self, i: usize) -> Vector3<f64> {
         // The maximum frequency is given by (speed of light) / (grid element size)
         let start_freq = 0.001;
-        let end_freq = 1.0;
+        let end_freq = 10.0;
         let start_force = self.force_on_for_freq(i, start_freq);
         let end_force = self.force_on_for_freq(i, end_freq);
 
@@ -100,44 +104,31 @@ impl World {
     }
 
     fn force_on_for_freq(&self, i: usize, frequency: f64) -> Vector3<f64> {
-        let mut perm = ScalarField::ones(self.nx, self.ny, self.nz);
-        let mag = ScalarField::ones(self.nx, self.ny, self.nz);
-        let permitivity = World::permitivity(frequency);
-        println!("{}", permitivity);
-        for bbox in &self.bboxes {
-            for x in bbox.x0..bbox.x1 {
-                for y in bbox.y0..bbox.y1 {
-                    for z in bbox.z0..bbox.z1 {
-                        perm.set(x as isize, y as isize, z as isize, permitivity);
-                    }
-                }
-            }
-        }
-        let mut inv_perm = perm.clone();
-        inv_perm.multiplicative_invert();
+        let perm_all_geom = &self.permitivity_field_all_geometry(frequency);
+        let mut total_force = self.force_on_for_freq_and_geometry(frequency, perm_all_geom, &self.bboxes[i]);
 
+        // Discretization gives rise to forces of an object on itself. Removing these gives more
+        // accurate results.
+        for bbox in &self.bboxes {
+            let perm = &self.permitivity_field(frequency, &vec![*bbox]);
+            total_force -= self.force_on_for_freq_and_geometry(frequency, perm, &self.bboxes[i]);
+        }
+
+        total_force
+    }
+
+    fn force_on_for_freq_and_geometry(&self, frequency: f64, perm: &ScalarField, bbox: &BoundingBox) -> Vector3<f64> {
         let size = Vector3::new(self.nx, self.ny, self.nz);
-        let mut force = Vector3::new(0.0, 0.0, 0.0);
+        let mut total_force = Vector3::new(0.0, 0.0, 0.0);
 
         // Integrate the force over the faces of the cube
-        let bbox = &self.bboxes[i];
-
-        println!("Force on for frequency {}.", frequency);
-
-        let perm = &perm;
-        let mag = &mag;
-        let inv_perm = &inv_perm;
-
-        force += (bbox.x0 - 1..bbox.x1 + 1).into_par_iter().flat_map(|x|
+        total_force += (bbox.x0 - 1..bbox.x1 + 1).into_par_iter().flat_map(|x|
             (bbox.y0 - 1..bbox.y1 + 1).into_par_iter().map(move |y| {
                 // Top face
                 let a = stress_tensor(
                     frequency,
                     Point3::new(x, y, bbox.z1 + 1),
                     &perm,
-                    &mag,
-                    &inv_perm,
-                    &mag,
                     size,
                 ) * Vector3::new(0.0, 0.0, 1.0);
 
@@ -145,9 +136,6 @@ impl World {
                     frequency,
                     Point3::new(x, y, bbox.z0 - 1),
                     &perm,
-                    &mag,
-                    &inv_perm,
-                    &mag,
                     size,
                 ) * Vector3::new(0.0, 0.0, -1.0);
 
@@ -155,16 +143,13 @@ impl World {
             })
         ).sum::<Vector3<f64>>();
 
-        force += (bbox.x0 - 1..bbox.x1 + 1).into_par_iter().flat_map(|x|
+        total_force += (bbox.x0 - 1..bbox.x1 + 1).into_par_iter().flat_map(|x|
             (bbox.z0 - 1..bbox.z1 + 1).into_par_iter().map(move |z| {
                 // Front
                 let a = stress_tensor(
                     frequency,
                     Point3::new(x, bbox.y1 + 1, z),
                     &perm,
-                    &mag,
-                    &inv_perm,
-                    &mag,
                     size,
                 ) * Vector3::new(0.0, 1.0, 0.0);
 
@@ -173,9 +158,6 @@ impl World {
                     frequency,
                     Point3::new(x, bbox.y0 - 1, z),
                     &perm,
-                    &mag,
-                    &inv_perm,
-                    &mag,
                     size,
                 ) * Vector3::new(0.0, -1.0, 0.0);
 
@@ -183,16 +165,13 @@ impl World {
             })
         ).sum::<Vector3<f64>>();
 
-        force += (bbox.y0 - 1..bbox.y1 + 1).into_par_iter().flat_map(|y|
+        total_force += (bbox.y0 - 1..bbox.y1 + 1).into_par_iter().flat_map(|y|
             (bbox.z0 - 1..bbox.z1 + 1).into_par_iter().map(move |z| {
                 // Right
                 let a = stress_tensor(
                     frequency,
                     Point3::new(bbox.x1 + 1, y, z),
                     &perm,
-                    &mag,
-                    &inv_perm,
-                    &mag,
                     size,
                 ) * Vector3::new(1.0, 0.0, 0.0);
 
@@ -201,9 +180,6 @@ impl World {
                     frequency,
                     Point3::new(bbox.x0 - 1, y, z),
                     &perm,
-                    &mag,
-                    &inv_perm,
-                    &mag,
                     size,
                 ) * Vector3::new(-1.0, 0.0, 0.0);
 
@@ -211,12 +187,34 @@ impl World {
             })
         ).sum::<Vector3<f64>>();
 
-        println!("Force for frequency {}: ({}, {}, {})", frequency, force.x, force.y, force.z);
+        println!("Force for frequency {}: ({}, {}, {})", frequency, total_force.x, total_force.y, total_force.z);
 
-        force
+        total_force
     }
 
-    fn permitivity(freq: f64) -> f64 {
+    /// Returns a scalar field representing the permitivity of a vector of bounding boxes.
+    fn permitivity_field(&self, freq: f64, boxes: &Vec<BoundingBox>) -> ScalarField {
+        let mut permitivity_field = ScalarField::ones(self.nx, self.ny, self.nz);
+        let permitivity = World::gold_permitivity(freq);
+        for bbox in boxes {
+            for x in bbox.x0..bbox.x1 {
+                for y in bbox.y0..bbox.y1 {
+                    for z in bbox.z0..bbox.z1 {
+                        permitivity_field.set(x as isize, y as isize, z as isize, permitivity);
+                    }
+                }
+            }
+        }
+        permitivity_field
+    }
+
+    /// Returns a scalar field representing the permitivity of the entire geometry.
+    fn permitivity_field_all_geometry(&self, freq: f64) -> ScalarField {
+        self.permitivity_field(freq, &self.bboxes)
+    }
+
+    /// Calculates the permitivity of gold for a particular imaginary frequency.
+    fn gold_permitivity(freq: f64) -> f64 {
         let omega_p = 7.79;
         let omega_tau = 48.8;
         let mut total = 0.0;
