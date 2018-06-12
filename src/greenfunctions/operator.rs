@@ -38,12 +38,12 @@ impl<'a, 'b> Mul<VectorField> for &'a Operator<'b> {
     fn mul(self, x: VectorField) -> Self::Output {
         match self.operator_type {
             OperatorType::Electric => {
-                let curl_part = (x.clone().curl_positive() * self.permitivity).curl_negative();
+                let curl_part = x.curl_positive().curl_negative();
                 let scalar_part = self.frequency_2 * (x * self.permitivity);
                 curl_part + &scalar_part
             }
             OperatorType::Magnetic => {
-                let curl_part = (x.clone().curl_positive() / self.permitivity).curl_negative();
+                let curl_part = (x.curl_positive() / self.permitivity).curl_negative();
                 let scalar_part = self.frequency_2 * x;
                 curl_part + &scalar_part
             }
