@@ -7,7 +7,7 @@ use vectorfield::VectorField;
 pub struct Operator<'a> {
     permitivity: &'a ScalarField,
     frequency_2: f64,
-    operator_type: OperatorType
+    operator_type: OperatorType,
 }
 
 /// The type of operator to use. The structure is very similar, but a scalar multiplication is
@@ -15,19 +15,19 @@ pub struct Operator<'a> {
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
 pub enum OperatorType {
     Electric,
-    Magnetic
+    Magnetic,
 }
 
 impl<'b> Operator<'b> {
     pub fn new<'a>(
         frequency: f64,
         permitivity: &'a ScalarField,
-        operator_type: OperatorType
+        operator_type: OperatorType,
     ) -> Operator<'a> {
         Operator {
             permitivity,
             frequency_2: frequency * frequency,
-            operator_type
+            operator_type,
         }
     }
 }
@@ -41,7 +41,7 @@ impl<'a, 'b> Mul<VectorField> for &'a Operator<'b> {
                 let curl_part = (x.clone().curl_positive() * self.permitivity).curl_negative();
                 let scalar_part = self.frequency_2 * (x * self.permitivity);
                 curl_part + &scalar_part
-            },
+            }
             OperatorType::Magnetic => {
                 let curl_part = (x.clone().curl_positive() / self.permitivity).curl_negative();
                 let scalar_part = self.frequency_2 * x;

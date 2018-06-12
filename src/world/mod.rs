@@ -1,43 +1,18 @@
 use greenfunctions::stress_tensor;
 use nalgebra::*;
-use scalarfield::ScalarField;
 use rayon::iter::*;
+use scalarfield::ScalarField;
 use std::f64::consts::PI;
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub struct BoundingBox {
-    pub x0: usize,
-    pub y0: usize,
-    pub z0: usize,
-    pub x1: usize,
-    pub y1: usize,
-    pub z1: usize,
-}
+mod boundingbox;
 
-impl BoundingBox {
-    fn new(x0: usize, y0: usize, z0: usize, x1: usize, y1: usize, z1: usize) -> BoundingBox {
-        BoundingBox {
-            x0,
-            y0,
-            z0,
-            x1,
-            y1,
-            z1,
-        }
-    }
-
-    /// Returns true if two bounding boxes intersect or touch.
-    fn intersects(&self, rhs: &BoundingBox) -> bool {
-        !(self.x0 > rhs.x1 || rhs.x0 > self.x1 || self.y0 > rhs.y1 || rhs.y0 > self.y1
-            || self.z0 > rhs.z1 || rhs.z0 > self.z0)
-    }
-}
+use world::boundingbox::BoundingBox;
 
 /// A struct representing the geometry
 #[derive(Eq, PartialEq, Clone, Debug, Hash)]
 pub struct World {
     size: Vector3<usize>,
-    bboxes: Vec<BoundingBox>
+    bboxes: Vec<BoundingBox>,
 }
 
 impl World {
@@ -45,13 +20,16 @@ impl World {
     pub fn new(size: Vector3<usize>) -> World {
         World {
             size,
-            bboxes: Vec::new()
+            bboxes: Vec::new(),
         }
     }
 
     /// Add a box to this world.
     pub fn add_box(&mut self, x0: usize, y0: usize, z0: usize, x1: usize, y1: usize, z1: usize) {
-        debug_assert!(x0 < x1 && y0 < y1 && z0 < z1 && x1 < self.size.x && y1 < self.size.y && z1 < self.size.z);
+        debug_assert!(
+            x0 < x1 && y0 < y1 && z0 < z1 && x1 < self.size.x && y1 < self.size.y
+                && z1 < self.size.z
+        );
         let bbox = BoundingBox::new(x0, y0, z0, x1, y1, z1);
         debug_assert!(!self.bboxes.iter().any(|b| b.intersects(&bbox)));
         self.bboxes.push(bbox);
@@ -59,6 +37,18 @@ impl World {
 
     /// Compute the force on the n'th object.
     pub fn force_on(&self, i: usize) -> Vector3<f64> {
+        println!("Geometry:");
+        println!(
+            "\tWorld size: ({}, {}, {})",
+            self.size.x, self.size.y, self.size.z
+        );
+        for (i, bbox) in self.bboxes.iter().enumerate() {
+            println!(
+                "\tBox {}: ({}, {}, {}) - ({}, {}, {})",
+                i, bbox.x0, bbox.y0, bbox.z0, bbox.x1, bbox.y1, bbox.z1
+            );
+        }
+
         // The maximum frequency is given by (speed of light) / (grid element size)
         let start_freq = 0.01;
         let end_freq = 1.0;
@@ -74,7 +64,7 @@ impl World {
         start_frequency: f64,
         end_frequency: f64,
         start_value: Vector3<f64>,
-        end_value: Vector3<f64>
+        end_value: Vector3<f64>,
     ) -> Vector3<f64> {
         // Do a recursive integration. The function should be smooth.
         if (start_value - end_value).norm() < 0.05 {
@@ -88,21 +78,22 @@ impl World {
                 start_frequency,
                 middle_frequency,
                 start_value,
-                middle_value
+                middle_value,
             )
                 + self.integrate_force_between_frequencies(
                     i,
                     middle_frequency,
                     end_frequency,
                     middle_value,
-                    end_value
+                    end_value,
                 )
         }
     }
 
     fn force_on_for_freq(&self, i: usize, frequency: f64) -> Vector3<f64> {
         let perm_all_geom = &self.permitivity_field_all_geometry(frequency);
-        let mut total_force = self.force_on_for_freq_and_geometry(frequency, perm_all_geom, &self.bboxes[i]);
+        let mut total_force =
+            self.force_on_for_freq_and_geometry(frequency, perm_all_geom, &self.bboxes[i]);
 
         // Discretization gives rise to forces of an object on itself. Removing these gives more
         // accurate results.
@@ -111,79 +102,78 @@ impl World {
             total_force -= self.force_on_for_freq_and_geometry(frequency, perm, &self.bboxes[i]);
         }
 
-        println!("Force for frequency {}: ({}, {}, {})", frequency, total_force.x, total_force.y, total_force.z);
+        println!(
+            "Force for frequency {}: ({}, {}, {})",
+            frequency, total_force.x, total_force.y, total_force.z
+        );
 
         total_force
     }
 
-    fn force_on_for_freq_and_geometry(&self, frequency: f64, perm: &ScalarField, bbox: &BoundingBox) -> Vector3<f64> {
+    fn force_on_for_freq_and_geometry(
+        &self,
+        frequency: f64,
+        perm: &ScalarField,
+        bbox: &BoundingBox,
+    ) -> Vector3<f64> {
         let mut total_force = Vector3::new(0.0, 0.0, 0.0);
 
         // Integrate the force over the faces of the cube
-        total_force += (bbox.x0 - 1..bbox.x1 + 1).into_par_iter().flat_map(|x|
-            (bbox.y0 - 1..bbox.y1 + 1).into_par_iter().map(move |y| {
-                // Top face
-                let a = stress_tensor(
-                    frequency,
-                    Point3::new(x, y, bbox.z1 + 1),
-                    &perm,
-                    self.size,
-                ) * Vector3::new(0.0, 0.0, 1.0);
+        total_force += (bbox.x0 - 1..bbox.x1 + 1)
+            .into_par_iter()
+            .flat_map(|x| {
+                (bbox.y0 - 1..bbox.y1 + 1).into_par_iter().map(move |y| {
+                    // Top face
+                    let a =
+                        stress_tensor(frequency, Point3::new(x, y, bbox.z1 + 1), &perm, self.size)
+                            * Vector3::new(0.0, 0.0, 1.0);
 
-                let b = stress_tensor(
-                    frequency,
-                    Point3::new(x, y, bbox.z0 - 1),
-                    &perm,
-                    self.size,
-                ) * Vector3::new(0.0, 0.0, -1.0);
+                    let b =
+                        stress_tensor(frequency, Point3::new(x, y, bbox.z0 - 1), &perm, self.size)
+                            * Vector3::new(0.0, 0.0, -1.0);
 
-                a + b
+                    a + b
+                })
             })
-        ).sum::<Vector3<f64>>();
+            .sum::<Vector3<f64>>();
 
-        total_force += (bbox.x0 - 1..bbox.x1 + 1).into_par_iter().flat_map(|x|
-            (bbox.z0 - 1..bbox.z1 + 1).into_par_iter().map(move |z| {
-                // Front
-                let a = stress_tensor(
-                    frequency,
-                    Point3::new(x, bbox.y1 + 1, z),
-                    &perm,
-                    self.size,
-                ) * Vector3::new(0.0, 1.0, 0.0);
+        total_force += (bbox.x0 - 1..bbox.x1 + 1)
+            .into_par_iter()
+            .flat_map(|x| {
+                (bbox.z0 - 1..bbox.z1 + 1).into_par_iter().map(move |z| {
+                    // Front
+                    let a =
+                        stress_tensor(frequency, Point3::new(x, bbox.y1 + 1, z), &perm, self.size)
+                            * Vector3::new(0.0, 1.0, 0.0);
 
-                // Back
-                let b = stress_tensor(
-                    frequency,
-                    Point3::new(x, bbox.y0 - 1, z),
-                    &perm,
-                    self.size,
-                ) * Vector3::new(0.0, -1.0, 0.0);
+                    // Back
+                    let b =
+                        stress_tensor(frequency, Point3::new(x, bbox.y0 - 1, z), &perm, self.size)
+                            * Vector3::new(0.0, -1.0, 0.0);
 
-                a + b
+                    a + b
+                })
             })
-        ).sum::<Vector3<f64>>();
+            .sum::<Vector3<f64>>();
 
-        total_force += (bbox.y0 - 1..bbox.y1 + 1).into_par_iter().flat_map(|y|
-            (bbox.z0 - 1..bbox.z1 + 1).into_par_iter().map(move |z| {
-                // Right
-                let a = stress_tensor(
-                    frequency,
-                    Point3::new(bbox.x1 + 1, y, z),
-                    &perm,
-                    self.size,
-                ) * Vector3::new(1.0, 0.0, 0.0);
+        total_force += (bbox.y0 - 1..bbox.y1 + 1)
+            .into_par_iter()
+            .flat_map(|y| {
+                (bbox.z0 - 1..bbox.z1 + 1).into_par_iter().map(move |z| {
+                    // Right
+                    let a =
+                        stress_tensor(frequency, Point3::new(bbox.x1 + 1, y, z), &perm, self.size)
+                            * Vector3::new(1.0, 0.0, 0.0);
 
-                // Left
-                let b = stress_tensor(
-                    frequency,
-                    Point3::new(bbox.x0 - 1, y, z),
-                    &perm,
-                    self.size,
-                ) * Vector3::new(-1.0, 0.0, 0.0);
+                    // Left
+                    let b =
+                        stress_tensor(frequency, Point3::new(bbox.x0 - 1, y, z), &perm, self.size)
+                            * Vector3::new(-1.0, 0.0, 0.0);
 
-                a + b
+                    a + b
+                })
             })
-        ).sum::<Vector3<f64>>();
+            .sum::<Vector3<f64>>();
 
         total_force
     }
@@ -216,8 +206,7 @@ impl World {
         let mut total = 0.0;
         for i in 0.. {
             let omega = f64::from(i) * 0.1;
-            let added = (omega_p * omega_p * omega_tau)
-                / (omega * omega + omega_tau * omega_tau)
+            let added = (omega_p * omega_p * omega_tau) / (omega * omega + omega_tau * omega_tau)
                 / (omega * omega + freq * freq) * 0.1;
             total += added;
             if added < 0.001 {

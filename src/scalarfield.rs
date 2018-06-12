@@ -1,5 +1,5 @@
 use nalgebra::*;
-use std::ops::{Add, Mul, Index};
+use std::ops::{Add, Index, Mul};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct ScalarField {
@@ -16,9 +16,8 @@ impl ScalarField {
     }
 
     pub fn set(&mut self, x: isize, y: isize, z: isize, value: f64) {
-        if x < 0 || x as usize >= self.size.x
-            || y < 0 || y as usize >= self.size.y
-            || z < 0 || z as usize >= self.size.z
+        if x < 0 || x as usize >= self.size.x || y < 0 || y as usize >= self.size.y || z < 0
+            || z as usize >= self.size.z
         {
             return;
         }
@@ -78,12 +77,11 @@ impl Index<(isize, isize, isize)> for ScalarField {
 
     fn index(&self, index: (isize, isize, isize)) -> &f64 {
         let (x, y, z) = index;
-        if x < 0 || x as usize >= self.size.x
-            || y < 0 || y as usize >= self.size.y
-            || z < 0 || z as usize >= self.size.z
-            {
-                &1.0
-            } else {
+        if x < 0 || x as usize >= self.size.x || y < 0 || y as usize >= self.size.y || z < 0
+            || z as usize >= self.size.z
+        {
+            &1.0
+        } else {
             &self.scalars[x as usize + self.size.x * (y as usize + self.size.y * (z as usize))]
         }
     }

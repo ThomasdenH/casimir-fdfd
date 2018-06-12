@@ -1,5 +1,5 @@
 use nalgebra::*;
-use std::ops::{Add, Mul, Sub, Index, IndexMut, Neg, AddAssign, SubAssign, Div};
+use std::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub, SubAssign};
 
 use scalarfield::ScalarField;
 
@@ -26,14 +26,14 @@ impl VectorField {
                 self.vectors.len(),
                 (0..self.size.z as isize).flat_map(|z| {
                     (0..self.size.y as isize).flat_map(move |y| {
-                        (0..self.size.z as isize).map(move |x| {
+                        (0..self.size.x as isize).map(move |x| {
                             Vector3::new(
-                                self[(x, y + 1, z)].z - self[(x, y, z)].z
-                                    - self[(x, y, z + 1)].y + self[(x, y, z)].y,
-                                self[(x, y, z + 1)].x - self[(x, y, z)].x
-                                    - self[(x + 1, y, z)].z + self[(x, y, z)].z,
-                                self[(x + 1, y, z)].y - self[(x, y, z)].y
-                                    - self[(x, y + 1, z)].x + self[(x, y, z)].x,
+                                self[(x, y + 1, z)].z - self[(x, y, z)].z - self[(x, y, z + 1)].y
+                                    + self[(x, y, z)].y,
+                                self[(x, y, z + 1)].x - self[(x, y, z)].x - self[(x + 1, y, z)].z
+                                    + self[(x, y, z)].z,
+                                self[(x + 1, y, z)].y - self[(x, y, z)].y - self[(x, y + 1, z)].x
+                                    + self[(x, y, z)].x,
                             )
                         })
                     })
@@ -51,12 +51,12 @@ impl VectorField {
                     (0..self.size.y as isize).flat_map(move |y| {
                         (0..self.size.x as isize).map(move |x| {
                             Vector3::new(
-                                self[(x, y, z)].z - self[(x, y - 1, z)].z
-                                    - self[(x, y, z)].y + self[(x, y, z - 1)].y,
-                                self[(x, y, z)].x - self[(x, y, z - 1)].x
-                                    - self[(x, y, z)].z + self[(x - 1, y, z)].z,
-                                self[(x, y, z)].y - self[(x - 1, y, z)].y
-                                    - self[(x, y, z)].x + self[(x, y - 1, z)].x,
+                                self[(x, y, z)].z - self[(x, y - 1, z)].z - self[(x, y, z)].y
+                                    + self[(x, y, z - 1)].y,
+                                self[(x, y, z)].x - self[(x, y, z - 1)].x - self[(x, y, z)].z
+                                    + self[(x - 1, y, z)].z,
+                                self[(x, y, z)].y - self[(x - 1, y, z)].y - self[(x, y, z)].x
+                                    + self[(x, y - 1, z)].x,
                             )
                         })
                     })

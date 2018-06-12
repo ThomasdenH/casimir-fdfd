@@ -5,7 +5,7 @@ use vectorfield::VectorField;
 
 mod operator;
 
-use greenfunctions::operator::{OperatorType, Operator};
+use greenfunctions::operator::{Operator, OperatorType};
 
 pub fn stress_tensor(
     frequency: f64,
@@ -16,10 +16,10 @@ pub fn stress_tensor(
     let electric_tensor = green_tensor(frequency, point, permitivity, size, OperatorType::Electric);
     let magnetic_tensor = green_tensor(frequency, point, permitivity, size, OperatorType::Magnetic);
 
-    frequency * frequency / PI * (
-            (magnetic_tensor - Matrix3::from_diagonal_element(0.5) * magnetic_tensor.trace())
-            + permitivity[point] * (electric_tensor - Matrix3::from_diagonal_element(0.5) * electric_tensor.trace())
-    )
+    frequency * frequency / PI
+        * ((magnetic_tensor - Matrix3::from_diagonal_element(0.5) * magnetic_tensor.trace())
+            + permitivity[point]
+                * (electric_tensor - Matrix3::from_diagonal_element(0.5) * electric_tensor.trace()))
 }
 
 pub fn green_tensor(
@@ -27,7 +27,7 @@ pub fn green_tensor(
     point: Point3<usize>,
     permitivity: &ScalarField,
     size: Vector3<usize>,
-    operator_type: OperatorType
+    operator_type: OperatorType,
 ) -> Matrix3<f64> {
     Matrix3::from_columns(&[
         green_function(
@@ -36,7 +36,7 @@ pub fn green_tensor(
             Vector3::new(1.0, 0.0, 0.0),
             permitivity,
             size,
-            operator_type
+            operator_type,
         ),
         green_function(
             frequency,
@@ -44,7 +44,7 @@ pub fn green_tensor(
             Vector3::new(0.0, 1.0, 0.0),
             permitivity,
             size,
-            operator_type
+            operator_type,
         ),
         green_function(
             frequency,
@@ -52,7 +52,7 @@ pub fn green_tensor(
             Vector3::new(0.0, 0.0, 1.0),
             permitivity,
             size,
-            operator_type
+            operator_type,
         ),
     ])
 }
@@ -63,7 +63,7 @@ pub fn green_function(
     polarization: Vector3<f64>,
     permitivity: &ScalarField,
     size: Vector3<usize>,
-    operator_type: OperatorType
+    operator_type: OperatorType,
 ) -> Vector3<f64> {
     // The delta function right hand side
     let mut b = VectorField::new(size);
@@ -77,12 +77,19 @@ pub fn green_function(
     let mut p = r.clone();
     let mut rsold = &r * &r;
 
-    for _ in 0..100 {
+    // In theory the conjugate gradient method should converge in N steps. In practice,it converges
+    // much quicker.
+    let n = size.x * size.y * size.z;
+
+    for _ in 0..n {
         let a_p = &a * p.clone();
         let alpha = rsold / (&p * &a_p);
         x += alpha * &p;
         r -= alpha * &a_p;
         let rsnew = &r * &r;
+        if rsnew.sqrt() < 0.01 {
+            break;
+        }
         p = (rsnew / rsold) * p + &r;
         rsold = rsnew;
     }

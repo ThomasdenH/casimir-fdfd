@@ -1,13 +1,13 @@
-use vectorfield::VectorField;
-use std::ops::{AddAssign, SubAssign, Mul};
 use nalgebra::*;
+use std::ops::{AddAssign, Mul, SubAssign};
+use vectorfield::VectorField;
 
 /// Represents the result of a scalar times a vector field reference. If it is added to a vector
 /// field later, it requires no owned source. Internally the addition is postponed until the next
 /// operation.
 pub struct ScaledVectorField<'a> {
     field: &'a VectorField,
-    scalar: f64
+    scalar: f64,
 }
 
 impl<'a> ScaledVectorField<'a> {
@@ -22,7 +22,7 @@ impl<'a> Mul<f64> for &'a VectorField {
     fn mul(self, rhs: f64) -> ScaledVectorField<'a> {
         ScaledVectorField {
             field: self,
-            scalar: rhs
+            scalar: rhs,
         }
     }
 }
@@ -33,7 +33,7 @@ impl<'a> Mul<&'a VectorField> for f64 {
     fn mul(self, rhs: &'a VectorField) -> ScaledVectorField<'a> {
         ScaledVectorField {
             field: rhs,
-            scalar: self
+            scalar: self,
         }
     }
 }
@@ -63,7 +63,6 @@ impl<'a, 'b> SubAssign<&'b ScaledVectorField<'a>> for VectorField {
         }
     }
 }
-
 
 impl<'a> AddAssign<ScaledVectorField<'a>> for VectorField {
     fn add_assign(&mut self, other: ScaledVectorField) {
