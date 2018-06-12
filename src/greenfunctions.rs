@@ -118,6 +118,7 @@ pub fn green_function(
         r -= alpha * &a_p;
         let rsnew = &r * &r;
         if rsnew.sqrt() / (n as f64) < 1e-8 {
+            println!("Convergence in {}. ({})", i, rsnew.sqrt() / (n as f64));
             break;
         }
         p = (rsnew / rsold) * p + &r;

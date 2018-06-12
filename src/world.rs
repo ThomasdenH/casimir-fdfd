@@ -128,8 +128,8 @@ impl World {
         let mag = &mag;
         let inv_perm = &inv_perm;
 
-        force += (bbox.x0..bbox.x1).into_par_iter().flat_map(|x|
-            (bbox.y0..bbox.y1).into_par_iter().map(move |y| {
+        force += (bbox.x0 - 1..bbox.x1 + 1).into_par_iter().flat_map(|x|
+            (bbox.y0 - 1..bbox.y1 + 1).into_par_iter().map(move |y| {
                 // Top face
                 let a = stress_tensor(
                     frequency,
@@ -155,8 +155,8 @@ impl World {
             })
         ).sum::<Vector3<f64>>();
 
-        force += (bbox.x0..bbox.x1).into_par_iter().flat_map(|x|
-            (bbox.z0..bbox.z1).into_par_iter().map(move |z| {
+        force += (bbox.x0 - 1..bbox.x1 + 1).into_par_iter().flat_map(|x|
+            (bbox.z0 - 1..bbox.z1 + 1).into_par_iter().map(move |z| {
                 // Front
                 let a = stress_tensor(
                     frequency,
@@ -183,8 +183,8 @@ impl World {
             })
         ).sum::<Vector3<f64>>();
 
-        force += (bbox.y0..bbox.y1).into_par_iter().flat_map(|y|
-            (bbox.z0..bbox.z1).into_par_iter().map(move |z| {
+        force += (bbox.y0 - 1..bbox.y1 + 1).into_par_iter().flat_map(|y|
+            (bbox.z0 - 1..bbox.z1 + 1).into_par_iter().map(move |z| {
                 // Right
                 let a = stress_tensor(
                     frequency,
