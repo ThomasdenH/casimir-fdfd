@@ -109,16 +109,18 @@ pub fn green_function(
     let mut p = r.clone();
     let mut rsold = &r * &r;
 
-    for _ in 0..(size.x * size.y * size.z) {
+    let n = size.x * size.y * size.z;
+
+    for i in 0..n {
         let a_p = &a * p.clone();
         let alpha = rsold / (&p * &a_p);
-        x += &(alpha * p.clone());
-        r -= &(alpha * a_p);
+        x += alpha * &p;
+        r -= alpha * &a_p;
         let rsnew = &r * &r;
-        if rsnew.sqrt() < 0.01 {
+        if rsnew.sqrt() / (n as f64) < 1e-8 {
             break;
         }
-        p = r.clone() + &((rsnew / rsold) * p);
+        p = (rsnew / rsold) * p + &r;
         rsold = rsnew;
     }
     x[point]

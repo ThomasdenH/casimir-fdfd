@@ -51,15 +51,15 @@ impl World {
     }
 
     pub fn add_box(&mut self, x0: usize, y0: usize, z0: usize, x1: usize, y1: usize, z1: usize) {
-        assert!(x0 < x1 && y0 < y1 && z0 < z1 && x1 < self.nx && y1 < self.ny && z1 < self.nz);
+        debug_assert!(x0 < x1 && y0 < y1 && z0 < z1 && x1 < self.nx && y1 < self.ny && z1 < self.nz);
         let bbox = BoundingBox::new(x0, y0, z0, x1, y1, z1);
-        assert!(!self.bboxes.iter().any(|b| b.intersects(&bbox)));
+        debug_assert!(!self.bboxes.iter().any(|b| b.intersects(&bbox)));
         self.bboxes.push(bbox);
     }
 
     pub fn force_on(&self, i: usize) -> Vector3<f64> {
         // The maximum frequency is given by (speed of light) / (grid element size)
-        let start_freq = 0.1;
+        let start_freq = 0.001;
         let end_freq = 1.0;
         let start_force = self.force_on_for_freq(i, start_freq);
         let end_force = self.force_on_for_freq(i, end_freq);
@@ -211,7 +211,7 @@ impl World {
             })
         ).sum::<Vector3<f64>>();
 
-        println!("Found force: {:?}", force);
+        println!("Force for frequency {}: ({}, {}, {})", frequency, force.x, force.y, force.z);
 
         force
     }

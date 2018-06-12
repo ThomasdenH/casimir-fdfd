@@ -6,6 +6,7 @@ mod greenfunctions;
 mod scalarfield;
 mod vectorfield;
 mod world;
+mod scaledvectorfield;
 
 use world::World;
 
