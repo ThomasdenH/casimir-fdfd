@@ -7,6 +7,8 @@ use std::f64::consts::PI;
 mod boundingbox;
 
 use world::boundingbox::BoundingBox;
+use pbr::ProgressBar;
+use std::sync::{Arc, Mutex};
 
 /// A struct representing the geometry
 #[derive(Eq, PartialEq, Clone, Debug, Hash)]
@@ -118,19 +120,34 @@ impl World {
     ) -> Vector3<f64> {
         let mut total_force = Vector3::new(0.0, 0.0, 0.0);
 
+        let dx = bbox.x1 - bbox.x0 + 2;
+        let dy = bbox.y1 - bbox.y0 + 2;
+        let dz = bbox.z1 - bbox.z0 + 2;
+        let count = 2 * (dx * dy + dy * dz + dz * dx) as u64;
+        let progress_bar = Arc::new(Mutex::new(ProgressBar::new(count)));
+
         // Integrate the force over the faces of the cube
+
         total_force += (bbox.x0 - 1..bbox.x1 + 1)
             .into_par_iter()
-            .flat_map(|x| {
-                (bbox.y0 - 1..bbox.y1 + 1).into_par_iter().map(move |y| {
+            .map(|x| (x, progress_bar.clone()))
+            .flat_map(move |(x, progress_bar)| {
+                (bbox.y0 - 1..bbox.y1 + 1)
+                    .into_par_iter()
+                    .map(move |y| (y, progress_bar.clone()))
+                    .map(move |(y, progress_bar)| {
                     // Top face
                     let a =
                         stress_tensor(frequency, Point3::new(x, y, bbox.z1 + 1), &perm, self.size)
                             * Vector3::new(0.0, 0.0, 1.0);
 
+                    progress_bar.lock().unwrap().inc();
+
                     let b =
                         stress_tensor(frequency, Point3::new(x, y, bbox.z0 - 1), &perm, self.size)
                             * Vector3::new(0.0, 0.0, -1.0);
+
+                    progress_bar.lock().unwrap().inc();
 
                     a + b
                 })
@@ -139,17 +156,25 @@ impl World {
 
         total_force += (bbox.x0 - 1..bbox.x1 + 1)
             .into_par_iter()
-            .flat_map(|x| {
-                (bbox.z0 - 1..bbox.z1 + 1).into_par_iter().map(move |z| {
+            .map(|x| (x, progress_bar.clone()))
+            .flat_map(move |(x, progress_bar)| {
+                (bbox.z0 - 1..bbox.z1 + 1)
+                    .into_par_iter()
+                    .map(move |z| (z, progress_bar.clone()))
+                    .map(move |(z, progress_bar)| {
                     // Front
                     let a =
                         stress_tensor(frequency, Point3::new(x, bbox.y1 + 1, z), &perm, self.size)
                             * Vector3::new(0.0, 1.0, 0.0);
 
+                    progress_bar.lock().unwrap().inc();
+
                     // Back
                     let b =
                         stress_tensor(frequency, Point3::new(x, bbox.y0 - 1, z), &perm, self.size)
                             * Vector3::new(0.0, -1.0, 0.0);
+
+                    progress_bar.lock().unwrap().inc();
 
                     a + b
                 })
@@ -158,22 +183,32 @@ impl World {
 
         total_force += (bbox.y0 - 1..bbox.y1 + 1)
             .into_par_iter()
-            .flat_map(|y| {
-                (bbox.z0 - 1..bbox.z1 + 1).into_par_iter().map(move |z| {
+            .map(|y| (y, progress_bar.clone()))
+            .flat_map(move |(y, progress_bar)| {
+                (bbox.z0 - 1..bbox.z1 + 1)
+                    .into_par_iter()
+                    .map(move |z| (z, progress_bar.clone()))
+                    .map(move |(z, progress_bar)| {
                     // Right
                     let a =
                         stress_tensor(frequency, Point3::new(bbox.x1 + 1, y, z), &perm, self.size)
                             * Vector3::new(1.0, 0.0, 0.0);
+
+                    progress_bar.lock().unwrap().inc();
 
                     // Left
                     let b =
                         stress_tensor(frequency, Point3::new(bbox.x0 - 1, y, z), &perm, self.size)
                             * Vector3::new(-1.0, 0.0, 0.0);
 
+                    progress_bar.lock().unwrap().inc();
+
                     a + b
                 })
             })
             .sum::<Vector3<f64>>();
+
+        progress_bar.lock().unwrap().finish();
 
         total_force
     }
