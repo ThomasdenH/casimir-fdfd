@@ -33,8 +33,7 @@ pub struct CosineBasis<'a> {
 }
 
 impl<'a> CosineBasis<'a> {
-    /// Will construct a new cosine basis with the following points as start and end points. The
-    /// domain will end at the ending point, so it will not be an additional unit cell bigger.
+    /// Will construct a new cosine basis with the following points as start and end points.
     pub fn new(
         p0: Point3<usize>,
         p1: Point3<usize>,
