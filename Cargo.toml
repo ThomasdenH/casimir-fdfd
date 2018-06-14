@@ -7,6 +7,8 @@ authors = ["Thomas <denhollander.thomas@gmail.com>"]
 nalgebra = "0.15.1"
 pbr = "1.0.1"
 rayon = "1.0.1"
+serde_json = "1.0"
+failure = "0.1.1"
 
 [profile.release]
 opt-level = 3

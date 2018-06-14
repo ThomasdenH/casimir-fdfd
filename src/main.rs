@@ -1,21 +1,22 @@
 extern crate nalgebra;
 extern crate pbr;
 extern crate rayon;
+extern crate serde_json;
+extern crate failure;
 
 mod greenfunctions;
 mod scalarfield;
 mod scaledvectorfield;
 mod vectorfield;
 mod world;
+mod config;
 
-use nalgebra::*;
-use world::World;
+use config::ConfigFile;
+use failure::Error;
 
-fn main() {
-    let mut world = World::new(Vector3::new(60, 60, 60));
-    world.add_box(1, 1, 1, 10, 10, 2);
-    world.add_box(1, 1, 10, 10, 10, 11);
-
-    let force = world.force_on(0);
+fn main() -> Result<(), Error> {
+    let config = ConfigFile::from_file("worlds/plates_small.json")?;
+    let force = config.to_world()?.force_on(0);
     println!("Calculated force: ({}, {}, {})", force.x, force.y, force.z);
+    Ok(())
 }

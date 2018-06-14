@@ -1,0 +1,20 @@
+{
+  "size": [15, 15, 25],
+  "objects": [
+    {
+      "type": "box",
+      "p0": [1, 1, 1],
+      "p1": [6, 6, 2]
+    },
+    {
+      "type": "box",
+      "p0": [1, 1, 10],
+      "p1": [6, 6, 11]
+    }
+  ],
+  "simulation_config": {
+    "frequency_threshold": 0.5,
+    "fdfd_convergence": 0.01,
+    "cosine_depth": 3
+  }
+}

@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct BoundingBox {
     pub x0: usize,
@@ -6,6 +8,14 @@ pub struct BoundingBox {
     pub x1: usize,
     pub y1: usize,
     pub z1: usize,
+}
+
+impl fmt::Display for BoundingBox {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f, "Box: ({}, {}, {}) - ({}, {}, {})", self.x0, self.y0, self.z0, self.x1, self.y1, self.z1
+        )
+    }
 }
 
 impl BoundingBox {

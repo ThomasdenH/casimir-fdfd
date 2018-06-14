@@ -6,20 +6,23 @@ mod boundingbox;
 
 use greenfunctions::cosinebasis::CosineBasis;
 use world::boundingbox::BoundingBox;
+use config::SimulationConfig;
 
 /// A struct representing the geometry
-#[derive(Eq, PartialEq, Clone, Debug, Hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct World {
     size: Vector3<usize>,
     bboxes: Vec<BoundingBox>,
+    simulation_config: SimulationConfig
 }
 
 impl World {
     /// Create a new empty world.
-    pub fn new(size: Vector3<usize>) -> World {
+    pub fn new(size: Vector3<usize>, simulation_config: SimulationConfig) -> World {
         World {
             size,
             bboxes: Vec::new(),
+            simulation_config
         }
     }
 
@@ -42,11 +45,10 @@ impl World {
             self.size.x, self.size.y, self.size.z
         );
         for (i, bbox) in self.bboxes.iter().enumerate() {
-            println!(
-                "\tBox {}: ({}, {}, {}) - ({}, {}, {})",
-                i, bbox.x0, bbox.y0, bbox.z0, bbox.x1, bbox.y1, bbox.z1
-            );
+            println!("\t{}: {}", i, bbox);
         }
+
+        println!("{}", self.simulation_config);
 
         // The maximum frequency is given by (speed of light) / (grid element size)
         let start_freq = 0.01;
