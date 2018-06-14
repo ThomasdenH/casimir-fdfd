@@ -1,14 +1,11 @@
-use greenfunctions::stress_tensor;
 use nalgebra::*;
-use rayon::iter::*;
 use scalarfield::ScalarField;
 use std::f64::consts::PI;
 
 mod boundingbox;
 
+use greenfunctions::cosinebasis::CosineBasis;
 use world::boundingbox::BoundingBox;
-use pbr::ProgressBar;
-use std::sync::{Arc, Mutex};
 
 /// A struct representing the geometry
 #[derive(Eq, PartialEq, Clone, Debug, Hash)]
@@ -57,7 +54,14 @@ impl World {
         let start_force = self.force_on_for_freq(i, start_freq);
         let end_force = self.force_on_for_freq(i, end_freq);
 
-        self.integrate_force_between_frequencies(i, start_freq, end_freq, start_force, end_force)
+        self.integrate_force_between_frequencies(
+            i,
+            start_freq,
+            end_freq,
+            start_force,
+            end_force,
+            start_force.norm(),
+        )
     }
 
     pub fn integrate_force_between_frequencies(
@@ -67,9 +71,10 @@ impl World {
         end_frequency: f64,
         start_value: Vector3<f64>,
         end_value: Vector3<f64>,
+        max: f64,
     ) -> Vector3<f64> {
         // Do a recursive integration. The function should be smooth.
-        if (start_value - end_value).norm() < 0.05 {
+        if (start_value - end_value).norm() < 0.01 * max {
             // The difference is small enough to do a line approximation
             0.5 * (start_value + end_value) * (end_frequency - start_frequency)
         } else {
@@ -81,6 +86,7 @@ impl World {
                 middle_frequency,
                 start_value,
                 middle_value,
+                max,
             )
                 + self.integrate_force_between_frequencies(
                     i,
@@ -88,6 +94,7 @@ impl World {
                     end_frequency,
                     middle_value,
                     end_value,
+                    max,
                 )
         }
     }
@@ -100,7 +107,7 @@ impl World {
         // Discretization gives rise to forces of an object on itself. Removing these gives more
         // accurate results.
         for bbox in &self.bboxes {
-            let perm = &self.permitivity_field(frequency, &vec![*bbox]);
+            let perm = &self.permitivity_field(frequency, &[*bbox]);
             total_force -= self.force_on_for_freq_and_geometry(frequency, perm, &self.bboxes[i]);
         }
 
@@ -120,101 +127,59 @@ impl World {
     ) -> Vector3<f64> {
         let mut total_force = Vector3::new(0.0, 0.0, 0.0);
 
-        let dx = bbox.x1 - bbox.x0 + 2;
-        let dy = bbox.y1 - bbox.y0 + 2;
-        let dz = bbox.z1 - bbox.z0 + 2;
-        let count = 2 * (dx * dy + dy * dz + dz * dx) as u64;
-        let progress_bar = Arc::new(Mutex::new(ProgressBar::new(count)));
+        println!("Face 1.");
+        total_force -= CosineBasis::new(
+            Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
+            Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z0 - 1),
+            frequency,
+            perm,
+        ).force();
 
-        // Integrate the force over the faces of the cube
+        println!("Face 2.");
+        total_force += CosineBasis::new(
+            Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z1 + 2),
+            Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
+            frequency,
+            perm,
+        ).force();
 
-        total_force += (bbox.x0 - 1..bbox.x1 + 1)
-            .into_par_iter()
-            .map(|x| (x, progress_bar.clone()))
-            .flat_map(move |(x, progress_bar)| {
-                (bbox.y0 - 1..bbox.y1 + 1)
-                    .into_par_iter()
-                    .map(move |y| (y, progress_bar.clone()))
-                    .map(move |(y, progress_bar)| {
-                    // Top face
-                    let a =
-                        stress_tensor(frequency, Point3::new(x, y, bbox.z1 + 1), &perm, self.size)
-                            * Vector3::new(0.0, 0.0, 1.0);
+        println!("Face 3.");
+        total_force -= CosineBasis::new(
+            Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
+            Point3::new(bbox.x1 + 2, bbox.y0 - 1, bbox.z1 + 2),
+            frequency,
+            perm,
+        ).force();
 
-                    progress_bar.lock().unwrap().inc();
+        println!("Face 4.");
+        total_force += CosineBasis::new(
+            Point3::new(bbox.x0 - 1, bbox.y1 + 2, bbox.z0 - 1),
+            Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
+            frequency,
+            perm,
+        ).force();
 
-                    let b =
-                        stress_tensor(frequency, Point3::new(x, y, bbox.z0 - 1), &perm, self.size)
-                            * Vector3::new(0.0, 0.0, -1.0);
+        println!("Face 5.");
+        total_force -= CosineBasis::new(
+            Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
+            Point3::new(bbox.x0 - 1, bbox.y1 + 2, bbox.z1 + 2),
+            frequency,
+            perm,
+        ).force();
 
-                    progress_bar.lock().unwrap().inc();
-
-                    a + b
-                })
-            })
-            .sum::<Vector3<f64>>();
-
-        total_force += (bbox.x0 - 1..bbox.x1 + 1)
-            .into_par_iter()
-            .map(|x| (x, progress_bar.clone()))
-            .flat_map(move |(x, progress_bar)| {
-                (bbox.z0 - 1..bbox.z1 + 1)
-                    .into_par_iter()
-                    .map(move |z| (z, progress_bar.clone()))
-                    .map(move |(z, progress_bar)| {
-                    // Front
-                    let a =
-                        stress_tensor(frequency, Point3::new(x, bbox.y1 + 1, z), &perm, self.size)
-                            * Vector3::new(0.0, 1.0, 0.0);
-
-                    progress_bar.lock().unwrap().inc();
-
-                    // Back
-                    let b =
-                        stress_tensor(frequency, Point3::new(x, bbox.y0 - 1, z), &perm, self.size)
-                            * Vector3::new(0.0, -1.0, 0.0);
-
-                    progress_bar.lock().unwrap().inc();
-
-                    a + b
-                })
-            })
-            .sum::<Vector3<f64>>();
-
-        total_force += (bbox.y0 - 1..bbox.y1 + 1)
-            .into_par_iter()
-            .map(|y| (y, progress_bar.clone()))
-            .flat_map(move |(y, progress_bar)| {
-                (bbox.z0 - 1..bbox.z1 + 1)
-                    .into_par_iter()
-                    .map(move |z| (z, progress_bar.clone()))
-                    .map(move |(z, progress_bar)| {
-                    // Right
-                    let a =
-                        stress_tensor(frequency, Point3::new(bbox.x1 + 1, y, z), &perm, self.size)
-                            * Vector3::new(1.0, 0.0, 0.0);
-
-                    progress_bar.lock().unwrap().inc();
-
-                    // Left
-                    let b =
-                        stress_tensor(frequency, Point3::new(bbox.x0 - 1, y, z), &perm, self.size)
-                            * Vector3::new(-1.0, 0.0, 0.0);
-
-                    progress_bar.lock().unwrap().inc();
-
-                    a + b
-                })
-            })
-            .sum::<Vector3<f64>>();
-
-        progress_bar.lock().unwrap().finish();
+        println!("Face 6.");
+        total_force += CosineBasis::new(
+            Point3::new(bbox.x1 + 2, bbox.y0 - 1, bbox.z0 - 1),
+            Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
+            frequency,
+            perm,
+        ).force();
 
         total_force
     }
 
     /// Returns a scalar field representing the permitivity of a vector of bounding boxes.
-    fn permitivity_field(&self, freq: f64, boxes: &Vec<BoundingBox>) -> ScalarField {
+    fn permitivity_field(&self, freq: f64, boxes: &[BoundingBox]) -> ScalarField {
         let mut permitivity_field = ScalarField::ones(self.size);
         let permitivity = World::gold_permitivity(freq);
         for bbox in boxes {

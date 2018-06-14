@@ -3,6 +3,7 @@ use scalarfield::ScalarField;
 use std::f64::consts::PI;
 use vectorfield::VectorField;
 
+pub mod cosinebasis;
 mod operator;
 
 use greenfunctions::operator::{Operator, OperatorType};
