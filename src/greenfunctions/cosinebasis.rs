@@ -4,6 +4,7 @@ use rayon::iter::*;
 use scalarfield::ScalarField;
 use std::f64::consts::PI;
 use vectorfield::VectorField;
+use config::SimulationConfig;
 
 #[derive(Eq, PartialEq, Copy, Clone, Hash, Debug)]
 enum Direction {
@@ -28,6 +29,7 @@ pub struct CosineBasis<'a> {
     frequency: f64,
     normal: Direction,
     permitivity: &'a ScalarField,
+    simulation_config: &'a SimulationConfig
 }
 
 impl<'a> CosineBasis<'a> {
@@ -38,6 +40,7 @@ impl<'a> CosineBasis<'a> {
         p1: Point3<usize>,
         frequency: f64,
         permitivity: &'a ScalarField,
+        simulation_config: &'a SimulationConfig
     ) -> CosineBasis<'a> {
         let normal = {
             if p0.x == p1.x {
@@ -56,6 +59,7 @@ impl<'a> CosineBasis<'a> {
             frequency,
             permitivity,
             normal,
+            simulation_config
         }
     }
 
@@ -66,14 +70,14 @@ impl<'a> CosineBasis<'a> {
             Direction::Z => (self.p1.x - self.p0.x, self.p1.y - self.p0.y),
         };
 
-        (0..3usize.min(amax))
+        (0..self.simulation_config.cosine_depth.min(amax))
             .into_par_iter()
             .flat_map(|na| {
-                (0..3usize.min(bmax))
+                (0..self.simulation_config.cosine_depth.min(bmax))
                     .into_par_iter()
                     .map(move |nb| {
                         let force = self.force_for_basis(na, nb);
-                        println!("Force for {}, {}: {:?}", na, nb, force);
+                        // println!("Force for {}, {}: {:?}", na, nb, force);
                         force
                     })
             })
@@ -168,7 +172,7 @@ impl<'a> CosineBasis<'a> {
             x += alpha * &p;
             r -= alpha * &a_p;
             let rsnew = &r * &r;
-            if rsnew.sqrt() < 0.01 {
+            if rsnew.sqrt() < self.simulation_config.fdfd_convergence {
                 break;
             }
             p = (rsnew / rsold) * p + &r;

@@ -15,6 +15,7 @@
   "simulation_config": {
     "frequency_threshold": 0.5,
     "fdfd_convergence": 0.01,
-    "cosine_depth": 3
+    "cosine_depth": 3,
+    "frequency_range": [0.01, 1.0]
   }
 }

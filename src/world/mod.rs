@@ -51,8 +51,8 @@ impl World {
         println!("{}", self.simulation_config);
 
         // The maximum frequency is given by (speed of light) / (grid element size)
-        let start_freq = 0.01;
-        let end_freq = 1.0;
+        let start_freq = self.simulation_config.frequency_range[0];
+        let end_freq = self.simulation_config.frequency_range[1];
         let start_force = self.force_on_for_freq(i, start_freq);
         let end_force = self.force_on_for_freq(i, end_freq);
 
@@ -76,7 +76,7 @@ impl World {
         max: f64,
     ) -> Vector3<f64> {
         // Do a recursive integration. The function should be smooth.
-        if (start_value - end_value).norm() < 0.01 * max {
+        if (start_value - end_value).norm() < self.simulation_config.frequency_threshold * max {
             // The difference is small enough to do a line approximation
             0.5 * (start_value + end_value) * (end_frequency - start_frequency)
         } else {
@@ -129,52 +129,58 @@ impl World {
     ) -> Vector3<f64> {
         let mut total_force = Vector3::new(0.0, 0.0, 0.0);
 
-        println!("Face 1.");
+        // println!("Face 1.");
         total_force -= CosineBasis::new(
             Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
             Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z0 - 1),
             frequency,
             perm,
+            &self.simulation_config
         ).force();
 
-        println!("Face 2.");
+        // println!("Face 2.");
         total_force += CosineBasis::new(
             Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z1 + 2),
             Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
             frequency,
             perm,
+            &self.simulation_config
         ).force();
 
-        println!("Face 3.");
+        // println!("Face 3.");
         total_force -= CosineBasis::new(
             Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
             Point3::new(bbox.x1 + 2, bbox.y0 - 1, bbox.z1 + 2),
             frequency,
             perm,
+            &self.simulation_config
         ).force();
 
-        println!("Face 4.");
+        // println!("Face 4.");
         total_force += CosineBasis::new(
             Point3::new(bbox.x0 - 1, bbox.y1 + 2, bbox.z0 - 1),
             Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
             frequency,
             perm,
+            &self.simulation_config
         ).force();
 
-        println!("Face 5.");
+        // println!("Face 5.");
         total_force -= CosineBasis::new(
             Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
             Point3::new(bbox.x0 - 1, bbox.y1 + 2, bbox.z1 + 2),
             frequency,
             perm,
+            &self.simulation_config
         ).force();
 
-        println!("Face 6.");
+        // println!("Face 6.");
         total_force += CosineBasis::new(
             Point3::new(bbox.x1 + 2, bbox.y0 - 1, bbox.z0 - 1),
             Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
             frequency,
             perm,
+            &self.simulation_config
         ).force();
 
         total_force

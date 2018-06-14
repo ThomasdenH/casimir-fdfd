@@ -18,13 +18,15 @@ pub struct ConfigFile {
 pub struct SimulationConfig {
     /// If the force from two frequencies are within this range from eachother, no subdivision will
     /// be used in the integration
-    frequency_threshold: f64,
+    pub frequency_threshold: f64,
     /// If the norm of the vector is lower than this value, the field will be considered to have
     /// converged.
-    fdfd_convergence: f64,
+    pub fdfd_convergence: f64,
     /// The number of cosine expansion terms to use. A smaller value will be used if fewer terms
     /// already form a complete basis for a face.
-    cosine_depth: usize
+    pub cosine_depth: usize,
+    /// The frequency range to integrate over.
+    pub frequency_range: [f64; 2]
 }
 
 impl Default for SimulationConfig {
@@ -32,7 +34,8 @@ impl Default for SimulationConfig {
         SimulationConfig {
             frequency_threshold: 0.05,
             fdfd_convergence: 0.01,
-            cosine_depth: 3
+            cosine_depth: 3,
+            frequency_range: [0.01, 1.0]
         }
     }
 }
@@ -41,6 +44,7 @@ impl fmt::Display for SimulationConfig {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Simulation configuration:")?;
         writeln!(f, "\tFrequency threshold: {}", self.frequency_threshold)?;
+        writeln!(f, "\tFrequency range: {} .. {}", self.frequency_range[0], self.frequency_range[1])?;
         writeln!(f, "\tFDFD convergence: {}", self.fdfd_convergence)?;
         write!(f, "\tCosine depth: {}", self.cosine_depth)
     }
@@ -74,6 +78,11 @@ impl ConfigFile {
                 if let Value::Number(ref num) = map["cosine_depth"] {
                     if let Some(cosine_depth) = num.as_u64() {
                         config.cosine_depth = cosine_depth as usize;
+                    }
+                }
+                if let Value::Array(ref range) = map["frequency_range"] {
+                    if let (Some(start), Some(end)) = (range[0].as_f64(), range[1].as_f64()) {
+                        config.frequency_range = [start, end];
                     }
                 }
             },
