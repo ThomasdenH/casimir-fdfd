@@ -19,11 +19,7 @@ pub enum OperatorType {
 }
 
 impl<'b> Operator<'b> {
-    pub fn new(
-        frequency: f64,
-        permitivity: &ScalarField,
-        operator_type: OperatorType,
-    ) -> Operator {
+    pub fn new(frequency: f64, permitivity: &ScalarField, operator_type: OperatorType) -> Operator {
         Operator {
             permitivity,
             frequency_2: frequency * frequency,

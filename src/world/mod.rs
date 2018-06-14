@@ -5,18 +5,19 @@ use std::sync::{Arc, Mutex};
 
 mod boundingbox;
 
-use greenfunctions::cosinebasis::CosineBasis;
-use world::boundingbox::BoundingBox;
 use config::SimulationConfig;
+use greenfunctions::cosinebasis::CosineBasis;
 use pbr::ProgressBar;
+use rayon::iter::*;
 use std::io::Stdout;
+use world::boundingbox::BoundingBox;
 
 /// A struct representing the geometry
 #[derive(PartialEq, Clone, Debug)]
 pub struct World {
     size: Vector3<usize>,
     bboxes: Vec<BoundingBox>,
-    simulation_config: SimulationConfig
+    simulation_config: SimulationConfig,
 }
 
 impl World {
@@ -25,7 +26,7 @@ impl World {
         World {
             size,
             bboxes: Vec::new(),
-            simulation_config
+            simulation_config,
         }
     }
 
@@ -112,24 +113,31 @@ impl World {
         let dz = (bbox.z1 - bbox.z0 + 2).min(self.simulation_config.cosine_depth);
         let count = 2 * (dx * dy + dy * dz + dz * dx) * (1 + self.bboxes.len());
         let progress_bar = Arc::new(Mutex::new(ProgressBar::new(count as u64)));
+        progress_bar.lock().unwrap().format("╢▌▌░╟");
+        progress_bar.lock().unwrap().tick();
 
         let perm_all_geom = &self.permitivity_field_all_geometry(frequency);
-        let mut total_force =
-            self.force_on_for_freq_and_geometry(frequency, perm_all_geom, &self.bboxes[i],
-                                                progress_bar.clone());
+        let mut total_force = self.force_on_for_freq_and_geometry(
+            frequency,
+            perm_all_geom,
+            &self.bboxes[i],
+            progress_bar.clone(),
+        );
 
         // Discretization gives rise to forces of an object on itself. Removing these gives more
         // accurate results.
         for bbox in &self.bboxes {
             let perm = &self.permitivity_field(frequency, &[*bbox]);
-            total_force -= self.force_on_for_freq_and_geometry(frequency, perm, &self.bboxes[i],
-                                                               progress_bar.clone());
+            total_force -= self.force_on_for_freq_and_geometry(
+                frequency,
+                perm,
+                &self.bboxes[i],
+                progress_bar.clone(),
+            );
         }
 
-        println!(
-            "Force for frequency {}: ({}, {}, {})",
-            frequency, total_force.x, total_force.y, total_force.z
-        );
+        progress_bar.lock().unwrap().finish_println("");
+        println!("Force for frequency {}: ({}, {}, {})", frequency, total_force.x, total_force.y, total_force.z);
 
         total_force
     }
@@ -139,71 +147,63 @@ impl World {
         frequency: f64,
         perm: &ScalarField,
         bbox: &BoundingBox,
-        progress_bar: Arc<Mutex<ProgressBar<Stdout>>>
+        progress_bar: Arc<Mutex<ProgressBar<Stdout>>>,
     ) -> Vector3<f64> {
-        let mut total_force = Vector3::new(0.0, 0.0, 0.0);
+        (0..6)
+            .into_par_iter()
+            .map(|face| match face {
+                0 => -CosineBasis::new(
+                    Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
+                    Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z0 - 1),
+                    frequency,
+                    perm,
+                    &self.simulation_config,
+                ).with_progress_bar(progress_bar.clone())
+                    .force(),
+                1 => CosineBasis::new(
+                    Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z1 + 2),
+                    Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
+                    frequency,
+                    perm,
+                    &self.simulation_config,
+                ).with_progress_bar(progress_bar.clone())
+                    .force(),
+                2 => -CosineBasis::new(
+                    Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
+                    Point3::new(bbox.x1 + 2, bbox.y0 - 1, bbox.z1 + 2),
+                    frequency,
+                    perm,
+                    &self.simulation_config,
+                ).with_progress_bar(progress_bar.clone())
+                    .force(),
+                3 => CosineBasis::new(
+                    Point3::new(bbox.x0 - 1, bbox.y1 + 2, bbox.z0 - 1),
+                    Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
+                    frequency,
+                    perm,
+                    &self.simulation_config,
+                ).with_progress_bar(progress_bar.clone())
+                    .force(),
+                4 => -CosineBasis::new(
+                    Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
+                    Point3::new(bbox.x0 - 1, bbox.y1 + 2, bbox.z1 + 2),
+                    frequency,
+                    perm,
+                    &self.simulation_config,
+                ).with_progress_bar(progress_bar.clone())
+                    .force(),
+                5 => CosineBasis::new(
+                    Point3::new(bbox.x1 + 2, bbox.y0 - 1, bbox.z0 - 1),
+                    Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
+                    frequency,
+                    perm,
+                    &self.simulation_config,
+                ).with_progress_bar(progress_bar.clone())
+                    .force(),
 
-        // println!("Face 1.");
-        total_force -= CosineBasis::new(
-            Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
-            Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z0 - 1),
-            frequency,
-            perm,
-            &self.simulation_config
-        ).with_progress_bar(progress_bar.clone())
-            .force();
-
-        // println!("Face 2.");
-        total_force += CosineBasis::new(
-            Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z1 + 2),
-            Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
-            frequency,
-            perm,
-            &self.simulation_config
-        ).with_progress_bar(progress_bar.clone())
-            .force();
-
-        // println!("Face 3.");
-        total_force -= CosineBasis::new(
-            Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
-            Point3::new(bbox.x1 + 2, bbox.y0 - 1, bbox.z1 + 2),
-            frequency,
-            perm,
-            &self.simulation_config
-        ).with_progress_bar(progress_bar.clone())
-            .force();
-
-        // println!("Face 4.");
-        total_force += CosineBasis::new(
-            Point3::new(bbox.x0 - 1, bbox.y1 + 2, bbox.z0 - 1),
-            Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
-            frequency,
-            perm,
-            &self.simulation_config
-        ).with_progress_bar(progress_bar.clone())
-            .force();
-
-        // println!("Face 5.");
-        total_force -= CosineBasis::new(
-            Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
-            Point3::new(bbox.x0 - 1, bbox.y1 + 2, bbox.z1 + 2),
-            frequency,
-            perm,
-            &self.simulation_config
-        ).with_progress_bar(progress_bar.clone())
-            .force();
-
-        // println!("Face 6.");
-        total_force += CosineBasis::new(
-            Point3::new(bbox.x1 + 2, bbox.y0 - 1, bbox.z0 - 1),
-            Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
-            frequency,
-            perm,
-            &self.simulation_config
-        ).with_progress_bar(progress_bar.clone())
-            .force();
-
-        total_force
+                i => panic!("Face index out of bounds: {}", i),
+            })
+            .sum()
     }
 
     /// Returns a scalar field representing the permitivity of a vector of bounding boxes.

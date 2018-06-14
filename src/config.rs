@@ -1,16 +1,16 @@
 use failure::Error;
+use nalgebra::*;
 use serde_json;
+use serde_json::Value;
+use std::fmt;
 use std::fs::File;
 use std::io::Read;
 use world::World;
-use nalgebra::*;
-use std::fmt;
-use serde_json::Value;
 
 /// Contains the json representation of a configuration file.
 #[derive(Clone, PartialEq, Debug)]
 pub struct ConfigFile {
-    json_value: serde_json::Value
+    json_value: serde_json::Value,
 }
 
 /// Contains the configuration related to the simulation itself.
@@ -26,7 +26,7 @@ pub struct SimulationConfig {
     /// already form a complete basis for a face.
     pub cosine_depth: usize,
     /// The frequency range to integrate over.
-    pub frequency_range: [f64; 2]
+    pub frequency_range: [f64; 2],
 }
 
 impl Default for SimulationConfig {
@@ -35,7 +35,7 @@ impl Default for SimulationConfig {
             frequency_threshold: 0.05,
             fdfd_convergence: 0.01,
             cosine_depth: 3,
-            frequency_range: [0.01, 1.0]
+            frequency_range: [0.01, 1.0],
         }
     }
 }
@@ -44,7 +44,11 @@ impl fmt::Display for SimulationConfig {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Simulation configuration:")?;
         writeln!(f, "\tFrequency threshold: {}", self.frequency_threshold)?;
-        writeln!(f, "\tFrequency range: {} .. {}", self.frequency_range[0], self.frequency_range[1])?;
+        writeln!(
+            f,
+            "\tFrequency range: {} .. {}",
+            self.frequency_range[0], self.frequency_range[1]
+        )?;
         writeln!(f, "\tFDFD convergence: {}", self.fdfd_convergence)?;
         write!(f, "\tCosine depth: {}", self.cosine_depth)
     }
@@ -85,7 +89,7 @@ impl ConfigFile {
                         config.frequency_range = [start, end];
                     }
                 }
-            },
+            }
             _ => {}
         }
         config
@@ -98,9 +102,9 @@ impl ConfigFile {
             Vector3::new(
                 size[0].as_u64().unwrap() as usize,
                 size[1].as_u64().unwrap() as usize,
-                size[2].as_u64().unwrap() as usize
+                size[2].as_u64().unwrap() as usize,
             ),
-            simulation_config
+            simulation_config,
         );
 
         for object in self.json_value["objects"].as_array().unwrap() {
@@ -113,7 +117,7 @@ impl ConfigFile {
                 p0[2].as_u64().unwrap() as usize,
                 p1[0].as_u64().unwrap() as usize,
                 p1[1].as_u64().unwrap() as usize,
-                p1[2].as_u64().unwrap() as usize
+                p1[2].as_u64().unwrap() as usize,
             );
         }
 

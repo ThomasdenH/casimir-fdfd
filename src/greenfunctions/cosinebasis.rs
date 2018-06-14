@@ -1,13 +1,13 @@
+use config::SimulationConfig;
 use greenfunctions::operator::{Operator, OperatorType};
 use nalgebra::*;
+use pbr::ProgressBar;
 use rayon::iter::*;
 use scalarfield::ScalarField;
 use std::f64::consts::PI;
-use vectorfield::VectorField;
-use config::SimulationConfig;
-use pbr::ProgressBar;
-use std::sync::{Arc, Mutex};
 use std::io::Stdout;
+use std::sync::{Arc, Mutex};
+use vectorfield::VectorField;
 
 #[derive(Eq, PartialEq, Copy, Clone, Hash, Debug)]
 enum Direction {
@@ -33,7 +33,7 @@ pub struct CosineBasis<'a> {
     normal: Direction,
     permitivity: &'a ScalarField,
     simulation_config: &'a SimulationConfig,
-    progress_bar: Option<Arc<Mutex<ProgressBar<Stdout>>>>
+    progress_bar: Option<Arc<Mutex<ProgressBar<Stdout>>>>,
 }
 
 impl<'a> CosineBasis<'a> {
@@ -43,7 +43,7 @@ impl<'a> CosineBasis<'a> {
         p1: Point3<usize>,
         frequency: f64,
         permitivity: &'a ScalarField,
-        simulation_config: &'a SimulationConfig
+        simulation_config: &'a SimulationConfig,
     ) -> CosineBasis<'a> {
         let normal = {
             if p0.x == p1.x {
@@ -63,12 +63,14 @@ impl<'a> CosineBasis<'a> {
             permitivity,
             normal,
             simulation_config,
-            progress_bar: None
+            progress_bar: None,
         }
     }
 
-    pub fn with_progress_bar(mut self, progress_bar: Arc<Mutex<ProgressBar<Stdout>>>) ->
-                                                                                  CosineBasis<'a> {
+    pub fn with_progress_bar(
+        mut self,
+        progress_bar: Arc<Mutex<ProgressBar<Stdout>>>,
+    ) -> CosineBasis<'a> {
         self.progress_bar = Some(progress_bar);
         self
     }
@@ -85,14 +87,14 @@ impl<'a> CosineBasis<'a> {
             .flat_map(|na| {
                 let progress_bar = match self.progress_bar {
                     Some(ref a) => Some(a.clone()),
-                    None => None
+                    None => None,
                 };
                 (0..self.simulation_config.cosine_depth.min(bmax))
                     .into_par_iter()
                     .map(move |nb| {
                         let progress_bar = match progress_bar {
                             Some(ref a) => Some(a.clone()),
-                            None => None
+                            None => None,
                         };
                         let force = self.force_for_basis(na, nb);
                         if let Some(progress_bar) = progress_bar {

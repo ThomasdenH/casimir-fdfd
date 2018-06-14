@@ -13,7 +13,9 @@ pub struct BoundingBox {
 impl fmt::Display for BoundingBox {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
-            f, "Box: ({}, {}, {}) - ({}, {}, {})", self.x0, self.y0, self.z0, self.x1, self.y1, self.z1
+            f,
+            "Box: ({}, {}, {}) - ({}, {}, {})",
+            self.x0, self.y0, self.z0, self.x1, self.y1, self.z1
         )
     }
 }
