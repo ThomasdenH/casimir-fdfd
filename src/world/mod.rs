@@ -1,12 +1,15 @@
 use nalgebra::*;
 use scalarfield::ScalarField;
 use std::f64::consts::PI;
+use std::sync::{Arc, Mutex};
 
 mod boundingbox;
 
 use greenfunctions::cosinebasis::CosineBasis;
 use world::boundingbox::BoundingBox;
 use config::SimulationConfig;
+use pbr::ProgressBar;
+use std::io::Stdout;
 
 /// A struct representing the geometry
 #[derive(PartialEq, Clone, Debug)]
@@ -102,15 +105,25 @@ impl World {
     }
 
     fn force_on_for_freq(&self, i: usize, frequency: f64) -> Vector3<f64> {
+        // Progress bar
+        let bbox = &self.bboxes[i];
+        let dx = (bbox.x1 - bbox.x0 + 2).min(self.simulation_config.cosine_depth);
+        let dy = (bbox.y1 - bbox.y0 + 2).min(self.simulation_config.cosine_depth);
+        let dz = (bbox.z1 - bbox.z0 + 2).min(self.simulation_config.cosine_depth);
+        let count = 2 * (dx * dy + dy * dz + dz * dx) * (1 + self.bboxes.len());
+        let progress_bar = Arc::new(Mutex::new(ProgressBar::new(count as u64)));
+
         let perm_all_geom = &self.permitivity_field_all_geometry(frequency);
         let mut total_force =
-            self.force_on_for_freq_and_geometry(frequency, perm_all_geom, &self.bboxes[i]);
+            self.force_on_for_freq_and_geometry(frequency, perm_all_geom, &self.bboxes[i],
+                                                progress_bar.clone());
 
         // Discretization gives rise to forces of an object on itself. Removing these gives more
         // accurate results.
         for bbox in &self.bboxes {
             let perm = &self.permitivity_field(frequency, &[*bbox]);
-            total_force -= self.force_on_for_freq_and_geometry(frequency, perm, &self.bboxes[i]);
+            total_force -= self.force_on_for_freq_and_geometry(frequency, perm, &self.bboxes[i],
+                                                               progress_bar.clone());
         }
 
         println!(
@@ -126,6 +139,7 @@ impl World {
         frequency: f64,
         perm: &ScalarField,
         bbox: &BoundingBox,
+        progress_bar: Arc<Mutex<ProgressBar<Stdout>>>
     ) -> Vector3<f64> {
         let mut total_force = Vector3::new(0.0, 0.0, 0.0);
 
@@ -136,7 +150,8 @@ impl World {
             frequency,
             perm,
             &self.simulation_config
-        ).force();
+        ).with_progress_bar(progress_bar.clone())
+            .force();
 
         // println!("Face 2.");
         total_force += CosineBasis::new(
@@ -145,7 +160,8 @@ impl World {
             frequency,
             perm,
             &self.simulation_config
-        ).force();
+        ).with_progress_bar(progress_bar.clone())
+            .force();
 
         // println!("Face 3.");
         total_force -= CosineBasis::new(
@@ -154,7 +170,8 @@ impl World {
             frequency,
             perm,
             &self.simulation_config
-        ).force();
+        ).with_progress_bar(progress_bar.clone())
+            .force();
 
         // println!("Face 4.");
         total_force += CosineBasis::new(
@@ -163,7 +180,8 @@ impl World {
             frequency,
             perm,
             &self.simulation_config
-        ).force();
+        ).with_progress_bar(progress_bar.clone())
+            .force();
 
         // println!("Face 5.");
         total_force -= CosineBasis::new(
@@ -172,7 +190,8 @@ impl World {
             frequency,
             perm,
             &self.simulation_config
-        ).force();
+        ).with_progress_bar(progress_bar.clone())
+            .force();
 
         // println!("Face 6.");
         total_force += CosineBasis::new(
@@ -181,7 +200,8 @@ impl World {
             frequency,
             perm,
             &self.simulation_config
-        ).force();
+        ).with_progress_bar(progress_bar.clone())
+            .force();
 
         total_force
     }

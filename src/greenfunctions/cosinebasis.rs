@@ -5,6 +5,9 @@ use scalarfield::ScalarField;
 use std::f64::consts::PI;
 use vectorfield::VectorField;
 use config::SimulationConfig;
+use pbr::ProgressBar;
+use std::sync::{Arc, Mutex};
+use std::io::Stdout;
 
 #[derive(Eq, PartialEq, Copy, Clone, Hash, Debug)]
 enum Direction {
@@ -29,7 +32,8 @@ pub struct CosineBasis<'a> {
     frequency: f64,
     normal: Direction,
     permitivity: &'a ScalarField,
-    simulation_config: &'a SimulationConfig
+    simulation_config: &'a SimulationConfig,
+    progress_bar: Option<Arc<Mutex<ProgressBar<Stdout>>>>
 }
 
 impl<'a> CosineBasis<'a> {
@@ -58,8 +62,15 @@ impl<'a> CosineBasis<'a> {
             frequency,
             permitivity,
             normal,
-            simulation_config
+            simulation_config,
+            progress_bar: None
         }
+    }
+
+    pub fn with_progress_bar(mut self, progress_bar: Arc<Mutex<ProgressBar<Stdout>>>) ->
+                                                                                  CosineBasis<'a> {
+        self.progress_bar = Some(progress_bar);
+        self
     }
 
     pub fn force(&self) -> Vector3<f64> {
@@ -72,11 +83,21 @@ impl<'a> CosineBasis<'a> {
         (0..self.simulation_config.cosine_depth.min(amax))
             .into_par_iter()
             .flat_map(|na| {
+                let progress_bar = match self.progress_bar {
+                    Some(ref a) => Some(a.clone()),
+                    None => None
+                };
                 (0..self.simulation_config.cosine_depth.min(bmax))
                     .into_par_iter()
                     .map(move |nb| {
+                        let progress_bar = match progress_bar {
+                            Some(ref a) => Some(a.clone()),
+                            None => None
+                        };
                         let force = self.force_for_basis(na, nb);
-                        // println!("Force for {}, {}: {:?}", na, nb, force);
+                        if let Some(progress_bar) = progress_bar {
+                            progress_bar.lock().unwrap().inc();
+                        }
                         force
                     })
             })
