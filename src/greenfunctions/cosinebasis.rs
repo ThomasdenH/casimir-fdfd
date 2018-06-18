@@ -192,7 +192,7 @@ impl<'a> CosineBasis<'a> {
         let mut temp2 = VectorField::new(size);
         let mut a_p = VectorField::new(size);
 
-        for i in 0..volume {
+        for _ in 0..volume {
             let (a, b, c) = a.mul_with_temps(p.clone_to(a_p), temp1, temp2);
             a_p = a;
             temp1 = b;
@@ -203,7 +203,6 @@ impl<'a> CosineBasis<'a> {
             r -= alpha * &a_p;
             let rsnew = &r * &r;
             if rsnew.sqrt() < self.simulation_config.fdfd_convergence {
-                println!("{}: {}", i, rsnew);
                 break;
             }
             p = (rsnew / rsold) * p + &r;
