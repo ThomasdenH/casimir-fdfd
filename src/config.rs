@@ -105,19 +105,36 @@ impl ConfigFile {
         );
 
         for object in self.json_value["objects"].as_array().unwrap() {
-            assert!(object["type"] == "box", "Unknown type");
-            let p0 = &object["p0"];
-            let p1 = &object["p1"];
-            world.add_box(
-                p0[0].as_u64().unwrap() as usize,
-                p0[1].as_u64().unwrap() as usize,
-                p0[2].as_u64().unwrap() as usize,
-                p1[0].as_u64().unwrap() as usize,
-                p1[1].as_u64().unwrap() as usize,
-                p1[2].as_u64().unwrap() as usize,
-            );
+            if let Value::String(ref a) = object["type"] {
+                match a.as_ref() {
+                    "box" => {
+                        let p0 = &object["p0"];
+                        let p1 = &object["p1"];
+                        world.add_box(
+                            p0[0].as_u64().unwrap() as usize,
+                            p0[1].as_u64().unwrap() as usize,
+                            p0[2].as_u64().unwrap() as usize,
+                            p1[0].as_u64().unwrap() as usize,
+                            p1[1].as_u64().unwrap() as usize,
+                            p1[2].as_u64().unwrap() as usize,
+                        );
+                    }
+                    "sphere" => {
+                        let p = &object["point"];
+                        let radius = &object["radius"];
+                        world.add_sphere(
+                            Point3::new(
+                                p[0].as_u64().unwrap() as usize,
+                                p[1].as_u64().unwrap() as usize,
+                                p[2].as_u64().unwrap() as usize,
+                            ),
+                            radius.as_f64().unwrap() as f32,
+                        );
+                    }
+                    a => panic!("Unknown object type: {}", a),
+                }
+            }
         }
-
         Ok(world)
     }
 }

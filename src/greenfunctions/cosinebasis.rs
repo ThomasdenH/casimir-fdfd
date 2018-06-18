@@ -202,8 +202,8 @@ impl<'a> CosineBasis<'a> {
             x += alpha * &p;
             r -= alpha * &a_p;
             let rsnew = &r * &r;
-            println!("{}: {}", i, rsnew);
             if rsnew.sqrt() < self.simulation_config.fdfd_convergence {
+                println!("{}: {}", i, rsnew);
                 break;
             }
             p = (rsnew / rsold) * p + &r;

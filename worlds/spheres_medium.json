@@ -1,0 +1,21 @@
+{
+  "size": [40, 40, 50],
+  "objects": [
+    {
+      "type": "box",
+      "p0": [1, 1, 1],
+      "p1": [11, 11, 2]
+    },
+    {
+      "type": "sphere",
+      "point": [6, 6, 10],
+      "radius": 5
+    }
+  ],
+  "simulation_config": {
+    "frequency_threshold": 0.05,
+    "fdfd_convergence": 0.0001,
+    "cosine_depth": 4,
+    "frequency_range": [0.01, 1.0]
+  }
+}
