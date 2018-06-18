@@ -188,8 +188,16 @@ impl<'a> CosineBasis<'a> {
         // much quicker.
         let volume = size.x * size.y * size.z;
 
+        let mut temp1 = VectorField::new(size);
+        let mut temp2 = VectorField::new(size);
+        let mut a_p = VectorField::new(size);
+
         for i in 0..volume {
-            let a_p = &a * p.clone();
+            let (a, b, c) = a.mul_with_temps(p.clone_to(a_p), temp1, temp2);
+            a_p = a;
+            temp1 = b;
+            temp2 = c;
+
             let alpha = rsold / (&p * &a_p);
             x += alpha * &p;
             r -= alpha * &a_p;

@@ -42,6 +42,25 @@ impl VectorField {
         }
     }
 
+    pub fn curl_positive_to(&self, mut to: VectorField) -> VectorField {
+        debug_assert!(self.size() == to.size());
+        for x in 0..self.size.x as isize {
+            for y in 0..self.size.y as isize {
+                for z in 0..self.size.z as isize {
+                    to[(x as usize, y as usize, z as usize)] = Vector3::new(
+                        self[(x, y + 1, z)].z - self[(x, y, z)].z - self[(x, y, z + 1)].y
+                            + self[(x, y, z)].y,
+                        self[(x, y, z + 1)].x - self[(x, y, z)].x - self[(x + 1, y, z)].z
+                            + self[(x, y, z)].z,
+                        self[(x + 1, y, z)].y - self[(x, y, z)].y - self[(x, y + 1, z)].x
+                            + self[(x, y, z)].x,
+                    )
+                }
+            }
+        }
+        to
+    }
+
     pub fn curl_negative(&self) -> VectorField {
         VectorField {
             size: self.size,
@@ -65,12 +84,39 @@ impl VectorField {
         }
     }
 
+    pub fn curl_negative_to(&self, mut to: VectorField) -> VectorField {
+        debug_assert!(self.size() == to.size());
+        for x in 0..self.size.x as isize {
+            for y in 0..self.size.y as isize {
+                for z in 0..self.size.z as isize {
+                    to[(x as usize, y as usize, z as usize)] = Vector3::new(
+                        self[(x, y, z)].z - self[(x, y - 1, z)].z - self[(x, y, z)].y
+                            + self[(x, y, z - 1)].y,
+                        self[(x, y, z)].x - self[(x, y, z - 1)].x - self[(x, y, z)].z
+                            + self[(x - 1, y, z)].z,
+                        self[(x, y, z)].y - self[(x - 1, y, z)].y - self[(x, y, z)].x
+                            + self[(x, y - 1, z)].x,
+                    )
+                }
+            }
+        }
+        to
+    }
+
     pub fn size(&self) -> Vector3<usize> {
         self.size
     }
 
     pub fn len(&self) -> usize {
         self.vectors.len()
+    }
+
+    pub fn clone_to(&self, mut other: VectorField) -> VectorField {
+        debug_assert!(self.size() == other.size());
+        for i in 0..self.vectors.len() {
+            other[i] = self[i];
+        }
+        other
     }
 }
 
