@@ -1,5 +1,5 @@
 use nalgebra::*;
-use std::ops::{Add, Index, Mul, Sub, AddAssign, MulAssign, SubAssign, IndexMut};
+use std::ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct ScalarField {

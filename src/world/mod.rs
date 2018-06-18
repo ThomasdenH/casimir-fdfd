@@ -137,7 +137,10 @@ impl World {
         }
 
         progress_bar.lock().unwrap().finish_println("");
-        println!("Force for frequency {}: ({}, {}, {})", frequency, total_force.x, total_force.y, total_force.z);
+        println!(
+            "Force for frequency {}: ({}, {}, {})",
+            frequency, total_force.x, total_force.y, total_force.z
+        );
 
         total_force
     }

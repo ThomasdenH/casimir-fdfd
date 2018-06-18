@@ -28,7 +28,12 @@ impl<'b> Operator<'b> {
     }
 
     /// The operation, only without new allocations using two temporary vectors.
-    pub fn mul_with_temps(&self, x: VectorField, temp1: VectorField, temp2: VectorField) -> (VectorField, VectorField, VectorField) {
+    pub fn mul_with_temps(
+        &self,
+        x: VectorField,
+        temp1: VectorField,
+        temp2: VectorField,
+    ) -> (VectorField, VectorField, VectorField) {
         match self.operator_type {
             OperatorType::Electric => {
                 let curl_first = x.curl_positive_to(temp1);
