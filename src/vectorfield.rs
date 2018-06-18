@@ -68,6 +68,10 @@ impl VectorField {
     pub fn size(&self) -> Vector3<usize> {
         self.size
     }
+
+    pub fn len(&self) -> usize {
+        self.vectors.len()
+    }
 }
 
 impl<'a> Add<&'a VectorField> for VectorField {
@@ -105,12 +109,8 @@ impl<'a> Mul<&'a ScalarField> for VectorField {
 
     fn mul(mut self, rhs: &'a ScalarField) -> VectorField {
         debug_assert!(self.size() == rhs.size());
-        for x in 0..self.size().x {
-            for y in 0..self.size().y {
-                for z in 0..self.size().z {
-                    self[(x, y, z)] *= rhs[(x, y, z)];
-                }
-            }
+        for i in 0..self.vectors.len() {
+            self[i] *= rhs[i];
         }
         self
     }
@@ -121,12 +121,8 @@ impl<'a> Div<&'a ScalarField> for VectorField {
 
     fn div(mut self, rhs: &'a ScalarField) -> VectorField {
         debug_assert!(self.size() == rhs.size());
-        for x in 0..self.size().x {
-            for y in 0..self.size().y {
-                for z in 0..self.size().z {
-                    self[(x, y, z)] /= rhs[(x, y, z)];
-                }
-            }
+        for i in 0..self.vectors.len() {
+            self[i] /= rhs[i];
         }
         self
     }
@@ -138,12 +134,8 @@ impl<'a, 'b> Mul<&'a VectorField> for &'b VectorField {
     fn mul(self, rhs: &'a VectorField) -> Self::Output {
         let mut sum = 0.0;
         debug_assert!(self.size() == rhs.size());
-        for x in 0..self.size().x {
-            for y in 0..self.size().y {
-                for z in 0..self.size().z {
-                    sum += self[(x, y, z)].dot(&rhs[(x, y, z)]);
-                }
-            }
+        for i in 0..self.vectors.len() {
+            sum += self[i].dot(&rhs[i]);
         }
         sum
     }
@@ -153,12 +145,8 @@ impl Mul<VectorField> for f32 {
     type Output = VectorField;
 
     fn mul(self, mut rhs: VectorField) -> Self::Output {
-        for x in 0..rhs.size().x {
-            for y in 0..rhs.size().y {
-                for z in 0..rhs.size().z {
-                    rhs[(x, y, z)] *= self;
-                }
-            }
+        for i in 0..rhs.vectors.len() {
+            rhs[i] *= self;
         }
         rhs
     }
@@ -221,6 +209,20 @@ impl IndexMut<Point3<usize>> for VectorField {
     }
 }
 
+impl Index<usize> for VectorField {
+    type Output = Vector3<f32>;
+
+    fn index(&self, index: usize) -> &Vector3<f32> {
+        &self.vectors[index]
+    }
+}
+
+impl IndexMut<usize> for VectorField {
+    fn index_mut(&mut self, index: usize) -> &mut Vector3<f32> {
+        &mut self.vectors[index]
+    }
+}
+
 impl Neg for VectorField {
     type Output = VectorField;
     fn neg(mut self) -> Self::Output {
@@ -232,12 +234,8 @@ impl Neg for VectorField {
 impl<'a> AddAssign<&'a VectorField> for VectorField {
     fn add_assign(&mut self, rhs: &VectorField) {
         debug_assert!(self.size == rhs.size);
-        for x in 0..self.size().x {
-            for y in 0..self.size().y {
-                for z in 0..self.size().z {
-                    self[(x, y, z)] += rhs[(x, y, z)];
-                }
-            }
+        for i in 0..self.vectors.len() {
+            self[i] += rhs[i];
         }
     }
 }
@@ -245,12 +243,8 @@ impl<'a> AddAssign<&'a VectorField> for VectorField {
 impl<'a> SubAssign<&'a VectorField> for VectorField {
     fn sub_assign(&mut self, rhs: &VectorField) {
         debug_assert!(self.size == rhs.size);
-        for x in 0..self.size().x {
-            for y in 0..self.size().y {
-                for z in 0..self.size().z {
-                    self[(x, y, z)] -= rhs[(x, y, z)];
-                }
-            }
+        for i in 0..self.vectors.len() {
+            self[i] -= rhs[i];
         }
     }
 }

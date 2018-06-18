@@ -1,5 +1,5 @@
 use nalgebra::*;
-use std::ops::{Add, Index, Mul};
+use std::ops::{Add, Index, Mul, Sub, AddAssign, MulAssign, SubAssign, IndexMut};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct ScalarField {
@@ -32,13 +32,17 @@ impl ScalarField {
     pub fn size(&self) -> Vector3<usize> {
         self.size
     }
+
+    pub fn len(&self) -> usize {
+        self.scalars.len()
+    }
 }
 
 impl Mul<f32> for ScalarField {
     type Output = ScalarField;
 
     fn mul(mut self, rhs: f32) -> Self::Output {
-        self.scalars *= rhs;
+        self *= rhs;
         self
     }
 }
@@ -47,7 +51,7 @@ impl Mul<ScalarField> for f32 {
     type Output = ScalarField;
 
     fn mul(self, mut rhs: ScalarField) -> Self::Output {
-        rhs.scalars *= self;
+        rhs *= self;
         rhs
     }
 }
@@ -57,8 +61,38 @@ impl<'a> Add<&'a ScalarField> for ScalarField {
 
     fn add(mut self, rhs: &'a ScalarField) -> ScalarField {
         debug_assert!(self.size == rhs.size);
-        self.scalars += &rhs.scalars;
+        self += rhs;
         self
+    }
+}
+
+impl<'a> Sub<&'a ScalarField> for ScalarField {
+    type Output = ScalarField;
+
+    fn sub(mut self, rhs: &'a ScalarField) -> ScalarField {
+        debug_assert!(self.size == rhs.size);
+        self -= rhs;
+        self
+    }
+}
+
+impl<'a> AddAssign<&'a ScalarField> for ScalarField {
+    fn add_assign(&mut self, rhs: &'a ScalarField) {
+        debug_assert!(self.size == rhs.size);
+        self.scalars += &rhs.scalars;
+    }
+}
+
+impl<'a> SubAssign<&'a ScalarField> for ScalarField {
+    fn sub_assign(&mut self, rhs: &'a ScalarField) {
+        debug_assert!(self.size == rhs.size);
+        self.scalars -= &rhs.scalars;
+    }
+}
+
+impl<'a> MulAssign<f32> for ScalarField {
+    fn mul_assign(&mut self, rhs: f32) {
+        self.scalars *= rhs;
     }
 }
 
@@ -100,5 +134,19 @@ impl Index<Point3<isize>> for ScalarField {
 
     fn index(&self, index: Point3<isize>) -> &f32 {
         &self[(index.x, index.y, index.z)]
+    }
+}
+
+impl Index<usize> for ScalarField {
+    type Output = f32;
+
+    fn index(&self, index: usize) -> &f32 {
+        &self.scalars[index]
+    }
+}
+
+impl IndexMut<usize> for ScalarField {
+    fn index_mut(&mut self, index: usize) -> &mut f32 {
+        &mut self.scalars[index]
     }
 }

@@ -14,6 +14,10 @@ impl<'a> ScaledVectorField<'a> {
     pub fn size(&self) -> Vector3<usize> {
         self.field.size()
     }
+
+    pub fn len(&self) -> usize {
+        self.field.len()
+    }
 }
 
 impl<'a> Mul<f32> for &'a VectorField {
@@ -41,12 +45,8 @@ impl<'a> Mul<&'a VectorField> for f32 {
 impl<'a, 'b> AddAssign<&'b ScaledVectorField<'a>> for VectorField {
     fn add_assign(&mut self, other: &'b ScaledVectorField) {
         debug_assert!(self.size() == other.size());
-        for x in 0..self.size().x {
-            for y in 0..self.size().y {
-                for z in 0..self.size().z {
-                    self[(x, y, z)] += other.scalar * other.field[(x, y, z)];
-                }
-            }
+        for i in 0..other.len() {
+            self[i] += other.scalar * other.field[i];
         }
     }
 }
@@ -54,12 +54,8 @@ impl<'a, 'b> AddAssign<&'b ScaledVectorField<'a>> for VectorField {
 impl<'a, 'b> SubAssign<&'b ScaledVectorField<'a>> for VectorField {
     fn sub_assign(&mut self, other: &'b ScaledVectorField) {
         debug_assert!(self.size() == other.size());
-        for x in 0..self.size().x {
-            for y in 0..self.size().y {
-                for z in 0..self.size().z {
-                    self[(x, y, z)] -= other.scalar * other.field[(x, y, z)];
-                }
-            }
+        for i in 0..self.len() {
+            self[i] -= other.scalar * other.field[i];
         }
     }
 }
@@ -67,12 +63,8 @@ impl<'a, 'b> SubAssign<&'b ScaledVectorField<'a>> for VectorField {
 impl<'a> AddAssign<ScaledVectorField<'a>> for VectorField {
     fn add_assign(&mut self, other: ScaledVectorField) {
         debug_assert!(self.size() == other.size());
-        for x in 0..self.size().x {
-            for y in 0..self.size().y {
-                for z in 0..self.size().z {
-                    self[(x, y, z)] += other.scalar * other.field[(x, y, z)];
-                }
-            }
+        for i in 0..self.len() {
+            self[i] += other.scalar * other.field[i];
         }
     }
 }
@@ -80,12 +72,8 @@ impl<'a> AddAssign<ScaledVectorField<'a>> for VectorField {
 impl<'a> SubAssign<ScaledVectorField<'a>> for VectorField {
     fn sub_assign(&mut self, other: ScaledVectorField) {
         debug_assert!(self.size() == other.size());
-        for x in 0..self.size().x {
-            for y in 0..self.size().y {
-                for z in 0..self.size().z {
-                    self[(x, y, z)] -= other.scalar * other.field[(x, y, z)];
-                }
-            }
+        for i in 0..self.len() {
+            self[i] -= other.scalar * other.field[i];
         }
     }
 }
