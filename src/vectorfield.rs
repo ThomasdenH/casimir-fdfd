@@ -6,7 +6,7 @@ use scalarfield::ScalarField;
 #[derive(PartialEq, Clone, Debug)]
 pub struct VectorField {
     size: Vector3<usize>,
-    vectors: DVector<Vector3<f64>>,
+    vectors: DVector<Vector3<f32>>,
 }
 
 impl VectorField {
@@ -133,7 +133,7 @@ impl<'a> Div<&'a ScalarField> for VectorField {
 }
 
 impl<'a, 'b> Mul<&'a VectorField> for &'b VectorField {
-    type Output = f64;
+    type Output = f32;
 
     fn mul(self, rhs: &'a VectorField) -> Self::Output {
         let mut sum = 0.0;
@@ -149,7 +149,7 @@ impl<'a, 'b> Mul<&'a VectorField> for &'b VectorField {
     }
 }
 
-impl Mul<VectorField> for f64 {
+impl Mul<VectorField> for f32 {
     type Output = VectorField;
 
     fn mul(self, mut rhs: VectorField) -> Self::Output {
@@ -165,9 +165,9 @@ impl Mul<VectorField> for f64 {
 }
 
 impl Index<(usize, usize, usize)> for VectorField {
-    type Output = Vector3<f64>;
+    type Output = Vector3<f32>;
 
-    fn index(&self, index: (usize, usize, usize)) -> &Vector3<f64> {
+    fn index(&self, index: (usize, usize, usize)) -> &Vector3<f32> {
         let (x, y, z) = index;
         debug_assert!(x < self.size.x && y < self.size.y && z < self.size.z);
         &self.vectors[x + self.size.x * (y + self.size.y * z)]
@@ -175,9 +175,9 @@ impl Index<(usize, usize, usize)> for VectorField {
 }
 
 impl Index<(isize, isize, isize)> for VectorField {
-    type Output = Vector3<f64>;
+    type Output = Vector3<f32>;
 
-    fn index(&self, index: (isize, isize, isize)) -> &Vector3<f64> {
+    fn index(&self, index: (isize, isize, isize)) -> &Vector3<f32> {
         let (x, y, z) = index;
 
         // Implementing periodic boundary conditions
@@ -192,23 +192,23 @@ impl Index<(isize, isize, isize)> for VectorField {
 }
 
 impl Index<Point3<usize>> for VectorField {
-    type Output = Vector3<f64>;
+    type Output = Vector3<f32>;
 
-    fn index(&self, index: Point3<usize>) -> &Vector3<f64> {
+    fn index(&self, index: Point3<usize>) -> &Vector3<f32> {
         &self[(index.x, index.y, index.z)]
     }
 }
 
 impl Index<Point3<isize>> for VectorField {
-    type Output = Vector3<f64>;
+    type Output = Vector3<f32>;
 
-    fn index(&self, index: Point3<isize>) -> &Vector3<f64> {
+    fn index(&self, index: Point3<isize>) -> &Vector3<f32> {
         &self[(index.x, index.y, index.z)]
     }
 }
 
 impl IndexMut<(usize, usize, usize)> for VectorField {
-    fn index_mut<'a>(&'a mut self, index: (usize, usize, usize)) -> &'a mut Vector3<f64> {
+    fn index_mut<'a>(&'a mut self, index: (usize, usize, usize)) -> &'a mut Vector3<f32> {
         let (x, y, z) = index;
         debug_assert!(x < self.size.x && y < self.size.y && z < self.size.z);
         &mut self.vectors[x + self.size.x * (y + self.size.y * z)]
@@ -216,7 +216,7 @@ impl IndexMut<(usize, usize, usize)> for VectorField {
 }
 
 impl IndexMut<Point3<usize>> for VectorField {
-    fn index_mut<'a>(&'a mut self, index: Point3<usize>) -> &'a mut Vector3<f64> {
+    fn index_mut<'a>(&'a mut self, index: Point3<usize>) -> &'a mut Vector3<f32> {
         &mut self[(index.x, index.y, index.z)]
     }
 }

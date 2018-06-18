@@ -4,7 +4,7 @@ use nalgebra::*;
 use pbr::ProgressBar;
 use rayon::iter::*;
 use scalarfield::ScalarField;
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 use std::io::Stdout;
 use std::sync::{Arc, Mutex};
 use vectorfield::VectorField;
@@ -17,7 +17,7 @@ enum Direction {
 }
 
 impl Direction {
-    fn vector(self) -> Vector3<f64> {
+    fn vector(self) -> Vector3<f32> {
         match self {
             Direction::X => Vector3::new(1.0, 0.0, 0.0),
             Direction::Y => Vector3::new(0.0, 1.0, 0.0),
@@ -29,7 +29,7 @@ impl Direction {
 pub struct CosineBasis<'a> {
     p0: Point3<usize>,
     p1: Point3<usize>,
-    frequency: f64,
+    frequency: f32,
     normal: Direction,
     permitivity: &'a ScalarField,
     simulation_config: &'a SimulationConfig,
@@ -41,7 +41,7 @@ impl<'a> CosineBasis<'a> {
     pub fn new(
         p0: Point3<usize>,
         p1: Point3<usize>,
-        frequency: f64,
+        frequency: f32,
         permitivity: &'a ScalarField,
         simulation_config: &'a SimulationConfig,
     ) -> CosineBasis<'a> {
@@ -75,7 +75,7 @@ impl<'a> CosineBasis<'a> {
         self
     }
 
-    pub fn force(&self) -> Vector3<f64> {
+    pub fn force(&self) -> Vector3<f32> {
         let (amax, bmax) = match self.normal {
             Direction::X => (self.p1.y - self.p0.y, self.p1.z - self.p0.z),
             Direction::Y => (self.p1.x - self.p0.x, self.p1.z - self.p0.z),
@@ -112,36 +112,36 @@ impl<'a> CosineBasis<'a> {
             Direction::X => {
                 let dy = self.p1.y - self.p0.y;
                 let dz = self.p1.z - self.p0.z;
-                let vector = 2.0 / ((dy * dz) as f64).sqrt() * polarization.vector();
+                let vector = 2.0 / ((dy * dz) as f32).sqrt() * polarization.vector();
                 for y in self.p0.y..self.p1.y {
                     for z in self.p0.z..self.p1.z {
                         source_field[(self.p0.x, y, z)] = vector
-                            * (na as f64 * PI * y as f64 / dy as f64).cos()
-                            * (nb as f64 * PI * z as f64 / dz as f64).cos();
+                            * (na as f32 * PI * y as f32 / dy as f32).cos()
+                            * (nb as f32 * PI * z as f32 / dz as f32).cos();
                     }
                 }
             }
             Direction::Y => {
                 let dx = self.p1.x - self.p0.x;
                 let dz = self.p1.z - self.p0.z;
-                let vector = 2.0 / ((dx * dz) as f64).sqrt() * polarization.vector();
+                let vector = 2.0 / ((dx * dz) as f32).sqrt() * polarization.vector();
                 for x in self.p0.x..self.p1.x {
                     for z in self.p0.z..self.p1.z {
                         source_field[(x, self.p0.y, z)] = vector
-                            * (na as f64 * PI * x as f64 / dx as f64).cos()
-                            * (nb as f64 * PI * z as f64 / dz as f64).cos();
+                            * (na as f32 * PI * x as f32 / dx as f32).cos()
+                            * (nb as f32 * PI * z as f32 / dz as f32).cos();
                     }
                 }
             }
             Direction::Z => {
                 let dx = self.p1.x - self.p0.x;
                 let dy = self.p1.y - self.p0.y;
-                let vector = 2.0 / ((dx * dy) as f64).sqrt() * polarization.vector();
+                let vector = 2.0 / ((dx * dy) as f32).sqrt() * polarization.vector();
                 for x in self.p0.x..self.p1.x {
                     for y in self.p0.y..self.p1.y {
                         source_field[(x, y, self.p0.z)] = vector
-                            * (na as f64 * PI * x as f64 / dx as f64).cos()
-                            * (nb as f64 * PI * y as f64 / dy as f64).cos();
+                            * (na as f32 * PI * x as f32 / dx as f32).cos()
+                            * (nb as f32 * PI * y as f32 / dy as f32).cos();
                     }
                 }
             }
@@ -149,11 +149,11 @@ impl<'a> CosineBasis<'a> {
         source_field
     }
 
-    pub fn force_for_basis(&self, na: usize, nb: usize) -> Vector3<f64> {
+    pub fn force_for_basis(&self, na: usize, nb: usize) -> Vector3<f32> {
         self.stress_tensor(na, nb) * self.normal.vector()
     }
 
-    pub fn stress_tensor(&self, na: usize, nb: usize) -> Matrix3<f64> {
+    pub fn stress_tensor(&self, na: usize, nb: usize) -> Matrix3<f32> {
         let electric_tensor = self.green_tensor(na, nb, OperatorType::Electric);
         let magnetic_tensor = self.green_tensor(na, nb, OperatorType::Magnetic);
 
@@ -162,7 +162,7 @@ impl<'a> CosineBasis<'a> {
                 * (electric_tensor - Matrix3::from_diagonal_element(0.5) * electric_tensor.trace()))
     }
 
-    pub fn green_tensor(&self, na: usize, nb: usize, operator_type: OperatorType) -> Matrix3<f64> {
+    pub fn green_tensor(&self, na: usize, nb: usize, operator_type: OperatorType) -> Matrix3<f32> {
         Matrix3::from_columns(&[
             self.green_function(&self.get_source(na, nb, Direction::X), operator_type),
             self.green_function(&self.get_source(na, nb, Direction::Y), operator_type),
@@ -174,7 +174,7 @@ impl<'a> CosineBasis<'a> {
         &self,
         source: &VectorField,
         operator_type: OperatorType,
-    ) -> Vector3<f64> {
+    ) -> Vector3<f32> {
         // The operator
         let a = Operator::new(self.frequency, self.permitivity, operator_type);
         let size = self.permitivity.size();
@@ -188,12 +188,13 @@ impl<'a> CosineBasis<'a> {
         // much quicker.
         let volume = size.x * size.y * size.z;
 
-        for _ in 0..volume {
+        for i in 0..volume {
             let a_p = &a * p.clone();
             let alpha = rsold / (&p * &a_p);
             x += alpha * &p;
             r -= alpha * &a_p;
             let rsnew = &r * &r;
+            println!("{}: {}", i, rsnew);
             if rsnew.sqrt() < self.simulation_config.fdfd_convergence {
                 break;
             }

@@ -4,7 +4,7 @@ use std::ops::{Add, Index, Mul};
 #[derive(PartialEq, Clone, Debug)]
 pub struct ScalarField {
     size: Vector3<usize>,
-    scalars: DVector<f64>,
+    scalars: DVector<f32>,
 }
 
 impl ScalarField {
@@ -15,7 +15,7 @@ impl ScalarField {
         }
     }
 
-    pub fn set(&mut self, x: isize, y: isize, z: isize, value: f64) {
+    pub fn set(&mut self, x: isize, y: isize, z: isize, value: f32) {
         if x < 0 || x as usize >= self.size.x || y < 0 || y as usize >= self.size.y || z < 0
             || z as usize >= self.size.z
         {
@@ -34,16 +34,16 @@ impl ScalarField {
     }
 }
 
-impl Mul<f64> for ScalarField {
+impl Mul<f32> for ScalarField {
     type Output = ScalarField;
 
-    fn mul(mut self, rhs: f64) -> Self::Output {
+    fn mul(mut self, rhs: f32) -> Self::Output {
         self.scalars *= rhs;
         self
     }
 }
 
-impl Mul<ScalarField> for f64 {
+impl Mul<ScalarField> for f32 {
     type Output = ScalarField;
 
     fn mul(self, mut rhs: ScalarField) -> Self::Output {
@@ -63,9 +63,9 @@ impl<'a> Add<&'a ScalarField> for ScalarField {
 }
 
 impl Index<(usize, usize, usize)> for ScalarField {
-    type Output = f64;
+    type Output = f32;
 
-    fn index(&self, index: (usize, usize, usize)) -> &f64 {
+    fn index(&self, index: (usize, usize, usize)) -> &f32 {
         let (x, y, z) = index;
         debug_assert!(x < self.size.x && y < self.size.y && z < self.size.z);
         &self.scalars[x as usize + self.size.x * (y as usize + self.size.y * (z as usize))]
@@ -73,9 +73,9 @@ impl Index<(usize, usize, usize)> for ScalarField {
 }
 
 impl Index<(isize, isize, isize)> for ScalarField {
-    type Output = f64;
+    type Output = f32;
 
-    fn index(&self, index: (isize, isize, isize)) -> &f64 {
+    fn index(&self, index: (isize, isize, isize)) -> &f32 {
         let (x, y, z) = index;
         if x < 0 || x as usize >= self.size.x || y < 0 || y as usize >= self.size.y || z < 0
             || z as usize >= self.size.z
@@ -88,17 +88,17 @@ impl Index<(isize, isize, isize)> for ScalarField {
 }
 
 impl Index<Point3<usize>> for ScalarField {
-    type Output = f64;
+    type Output = f32;
 
-    fn index(&self, index: Point3<usize>) -> &f64 {
+    fn index(&self, index: Point3<usize>) -> &f32 {
         &self[(index.x, index.y, index.z)]
     }
 }
 
 impl Index<Point3<isize>> for ScalarField {
-    type Output = f64;
+    type Output = f32;
 
-    fn index(&self, index: Point3<isize>) -> &f64 {
+    fn index(&self, index: Point3<isize>) -> &f32 {
         &self[(index.x, index.y, index.z)]
     }
 }

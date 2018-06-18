@@ -1,6 +1,6 @@
 use nalgebra::*;
 use scalarfield::ScalarField;
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 use std::sync::{Arc, Mutex};
 
 mod boundingbox;
@@ -42,7 +42,7 @@ impl World {
     }
 
     /// Compute the force on the n'th object.
-    pub fn force_on(&self, i: usize) -> Vector3<f64> {
+    pub fn force_on(&self, i: usize) -> Vector3<f32> {
         println!("Geometry:");
         println!(
             "\tWorld size: ({}, {}, {})",
@@ -73,12 +73,12 @@ impl World {
     pub fn integrate_force_between_frequencies(
         &self,
         i: usize,
-        start_frequency: f64,
-        end_frequency: f64,
-        start_value: Vector3<f64>,
-        end_value: Vector3<f64>,
-        max: f64,
-    ) -> Vector3<f64> {
+        start_frequency: f32,
+        end_frequency: f32,
+        start_value: Vector3<f32>,
+        end_value: Vector3<f32>,
+        max: f32,
+    ) -> Vector3<f32> {
         // Do a recursive integration. The function should be smooth.
         if (start_value - end_value).norm() < self.simulation_config.frequency_threshold * max {
             // The difference is small enough to do a line approximation
@@ -105,7 +105,7 @@ impl World {
         }
     }
 
-    fn force_on_for_freq(&self, i: usize, frequency: f64) -> Vector3<f64> {
+    fn force_on_for_freq(&self, i: usize, frequency: f32) -> Vector3<f32> {
         // Progress bar
         let bbox = &self.bboxes[i];
         let dx = (bbox.x1 - bbox.x0 + 2).min(self.simulation_config.cosine_depth);
@@ -121,7 +121,7 @@ impl World {
             frequency,
             perm_all_geom,
             &self.bboxes[i],
-            progress_bar.clone(),
+            &progress_bar,
         );
 
         // Discretization gives rise to forces of an object on itself. Removing these gives more
@@ -132,7 +132,7 @@ impl World {
                 frequency,
                 perm,
                 &self.bboxes[i],
-                progress_bar.clone(),
+                &progress_bar,
             );
         }
 
@@ -144,11 +144,11 @@ impl World {
 
     fn force_on_for_freq_and_geometry(
         &self,
-        frequency: f64,
+        frequency: f32,
         perm: &ScalarField,
         bbox: &BoundingBox,
-        progress_bar: Arc<Mutex<ProgressBar<Stdout>>>,
-    ) -> Vector3<f64> {
+        progress_bar: &Arc<Mutex<ProgressBar<Stdout>>>,
+    ) -> Vector3<f32> {
         (0..6)
             .into_par_iter()
             .map(|face| match face {
@@ -207,7 +207,7 @@ impl World {
     }
 
     /// Returns a scalar field representing the permitivity of a vector of bounding boxes.
-    fn permitivity_field(&self, freq: f64, boxes: &[BoundingBox]) -> ScalarField {
+    fn permitivity_field(&self, freq: f32, boxes: &[BoundingBox]) -> ScalarField {
         let mut permitivity_field = ScalarField::ones(self.size);
         let permitivity = World::gold_permitivity(freq);
         for bbox in boxes {
@@ -223,17 +223,17 @@ impl World {
     }
 
     /// Returns a scalar field representing the permitivity of the entire geometry.
-    fn permitivity_field_all_geometry(&self, freq: f64) -> ScalarField {
+    fn permitivity_field_all_geometry(&self, freq: f32) -> ScalarField {
         self.permitivity_field(freq, &self.bboxes)
     }
 
     /// Calculates the permitivity of gold for a particular imaginary frequency.
-    fn gold_permitivity(freq: f64) -> f64 {
+    fn gold_permitivity(freq: f32) -> f32 {
         let omega_p = 7.79;
         let omega_tau = 48.8;
         let mut total = 0.0;
         for i in 0.. {
-            let omega = f64::from(i) * 0.1;
+            let omega = i as f32 * 0.1;
             let added = (omega_p * omega_p * omega_tau) / (omega * omega + omega_tau * omega_tau)
                 / (omega * omega + freq * freq) * 0.1;
             total += added;

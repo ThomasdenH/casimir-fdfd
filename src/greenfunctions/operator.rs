@@ -6,7 +6,7 @@ use vectorfield::VectorField;
 #[derive(Clone, PartialEq, Debug)]
 pub struct Operator<'a> {
     permitivity: &'a ScalarField,
-    frequency_2: f64,
+    frequency_2: f32,
     operator_type: OperatorType,
 }
 
@@ -19,7 +19,7 @@ pub enum OperatorType {
 }
 
 impl<'b> Operator<'b> {
-    pub fn new(frequency: f64, permitivity: &ScalarField, operator_type: OperatorType) -> Operator {
+    pub fn new(frequency: f32, permitivity: &ScalarField, operator_type: OperatorType) -> Operator {
         Operator {
             permitivity,
             frequency_2: frequency * frequency,

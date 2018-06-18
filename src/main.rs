@@ -15,7 +15,7 @@ use config::ConfigFile;
 use failure::Error;
 
 fn main() -> Result<(), Error> {
-    let config = ConfigFile::from_file("worlds/plates_medium.json")?;
+    let config = ConfigFile::from_file("worlds/plates_tiny.json")?;
     let force = config.to_world()?.force_on(0);
     println!("Calculated force: ({}, {}, {})", force.x, force.y, force.z);
     Ok(())

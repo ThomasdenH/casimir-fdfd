@@ -18,15 +18,15 @@ pub struct ConfigFile {
 pub struct SimulationConfig {
     /// If the force from two frequencies are within this range from eachother, no subdivision will
     /// be used in the integration
-    pub frequency_threshold: f64,
+    pub frequency_threshold: f32,
     /// If the norm of the vector is lower than this value, the field will be considered to have
     /// converged.
-    pub fdfd_convergence: f64,
+    pub fdfd_convergence: f32,
     /// The number of cosine expansion terms to use. A smaller value will be used if fewer terms
     /// already form a complete basis for a face.
     pub cosine_depth: usize,
     /// The frequency range to integrate over.
-    pub frequency_range: [f64; 2],
+    pub frequency_range: [f32; 2],
 }
 
 impl Default for SimulationConfig {
@@ -67,30 +67,27 @@ impl ConfigFile {
     fn read_simulation_config(&self) -> SimulationConfig {
         let json_config = &self.json_value["simulation_config"];
         let mut config = SimulationConfig::default();
-        match json_config {
-            Value::Object(map) => {
-                if let Value::Number(ref num) = map["frequency_threshold"] {
-                    if let Some(frequency_threshold) = num.as_f64() {
-                        config.frequency_threshold = frequency_threshold;
-                    }
-                }
-                if let Value::Number(ref num) = map["fdfd_convergence"] {
-                    if let Some(fdfd_convergence) = num.as_f64() {
-                        config.fdfd_convergence = fdfd_convergence;
-                    }
-                }
-                if let Value::Number(ref num) = map["cosine_depth"] {
-                    if let Some(cosine_depth) = num.as_u64() {
-                        config.cosine_depth = cosine_depth as usize;
-                    }
-                }
-                if let Value::Array(ref range) = map["frequency_range"] {
-                    if let (Some(start), Some(end)) = (range[0].as_f64(), range[1].as_f64()) {
-                        config.frequency_range = [start, end];
-                    }
+        if let Value::Object(map) = json_config {
+            if let Value::Number(ref num) = map["frequency_threshold"] {
+                if let Some(frequency_threshold) = num.as_f64() {
+                    config.frequency_threshold = frequency_threshold as f32;
                 }
             }
-            _ => {}
+            if let Value::Number(ref num) = map["fdfd_convergence"] {
+                if let Some(fdfd_convergence) = num.as_f64() {
+                    config.fdfd_convergence = fdfd_convergence as f32;
+                }
+            }
+            if let Value::Number(ref num) = map["cosine_depth"] {
+                if let Some(cosine_depth) = num.as_u64() {
+                    config.cosine_depth = cosine_depth as usize;
+                }
+            }
+            if let Value::Array(ref range) = map["frequency_range"] {
+                if let (Some(start), Some(end)) = (range[0].as_f64(), range[1].as_f64()) {
+                    config.frequency_range = [start as f32, end as f32];
+                }
+            }
         }
         config
     }

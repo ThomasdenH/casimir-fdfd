@@ -7,7 +7,7 @@ use vectorfield::VectorField;
 /// operation.
 pub struct ScaledVectorField<'a> {
     field: &'a VectorField,
-    scalar: f64,
+    scalar: f32,
 }
 
 impl<'a> ScaledVectorField<'a> {
@@ -16,10 +16,10 @@ impl<'a> ScaledVectorField<'a> {
     }
 }
 
-impl<'a> Mul<f64> for &'a VectorField {
+impl<'a> Mul<f32> for &'a VectorField {
     type Output = ScaledVectorField<'a>;
 
-    fn mul(self, rhs: f64) -> ScaledVectorField<'a> {
+    fn mul(self, rhs: f32) -> ScaledVectorField<'a> {
         ScaledVectorField {
             field: self,
             scalar: rhs,
@@ -27,7 +27,7 @@ impl<'a> Mul<f64> for &'a VectorField {
     }
 }
 
-impl<'a> Mul<&'a VectorField> for f64 {
+impl<'a> Mul<&'a VectorField> for f32 {
     type Output = ScaledVectorField<'a>;
 
     fn mul(self, rhs: &'a VectorField) -> ScaledVectorField<'a> {
