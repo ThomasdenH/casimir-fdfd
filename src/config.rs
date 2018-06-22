@@ -22,9 +22,9 @@ pub struct SimulationConfig {
     /// If the norm of the vector is lower than this value, the field will be considered to have
     /// converged.
     pub fdfd_convergence: f32,
-    /// The number of cosine expansion terms to use. A smaller value will be used if fewer terms
-    /// already form a complete basis for a face.
-    pub cosine_depth: usize,
+    /// After the cosine expansion adds less than this ratio of the n = (0, 0) force to the total,
+    /// it will stop.
+    pub cosine_cutoff: f32,
     /// The frequency range to integrate over.
     pub frequency_range: [f32; 2],
 }
@@ -32,9 +32,9 @@ pub struct SimulationConfig {
 impl Default for SimulationConfig {
     fn default() -> SimulationConfig {
         SimulationConfig {
-            frequency_threshold: 0.05,
-            fdfd_convergence: 0.01,
-            cosine_depth: 3,
+            frequency_threshold: 0.01,
+            fdfd_convergence: 0.00001,
+            cosine_cutoff: 0.01,
             frequency_range: [0.01, 1.0],
         }
     }
@@ -50,7 +50,7 @@ impl fmt::Display for SimulationConfig {
             self.frequency_range[0], self.frequency_range[1]
         )?;
         writeln!(f, "\tFDFD convergence: {}", self.fdfd_convergence)?;
-        write!(f, "\tCosine depth: {}", self.cosine_depth)
+        write!(f, "\tCosine cutoff: {}", self.cosine_cutoff)
     }
 }
 
@@ -78,9 +78,9 @@ impl ConfigFile {
                     config.fdfd_convergence = fdfd_convergence as f32;
                 }
             }
-            if let Value::Number(ref num) = map["cosine_depth"] {
-                if let Some(cosine_depth) = num.as_u64() {
-                    config.cosine_depth = cosine_depth as usize;
+            if let Value::Number(ref num) = map["cosine_cutoff"] {
+                if let Some(cosine_cutoff) = num.as_f64() {
+                    config.cosine_cutoff = cosine_cutoff as f32;
                 }
             }
             if let Value::Array(ref range) = map["frequency_range"] {
@@ -107,34 +107,38 @@ impl ConfigFile {
         for object in self.json_value["objects"].as_array().unwrap() {
             if let Value::String(ref a) = object["type"] {
                 match a.as_ref() {
-                    "box" => {
-                        let p0 = &object["p0"];
-                        let p1 = &object["p1"];
-                        world.add_box(
-                            p0[0].as_u64().unwrap() as usize,
-                            p0[1].as_u64().unwrap() as usize,
-                            p0[2].as_u64().unwrap() as usize,
-                            p1[0].as_u64().unwrap() as usize,
-                            p1[1].as_u64().unwrap() as usize,
-                            p1[2].as_u64().unwrap() as usize,
-                        );
-                    }
-                    "sphere" => {
-                        let p = &object["point"];
-                        let radius = &object["radius"];
-                        world.add_sphere(
-                            Point3::new(
-                                p[0].as_u64().unwrap() as usize,
-                                p[1].as_u64().unwrap() as usize,
-                                p[2].as_u64().unwrap() as usize,
-                            ),
-                            radius.as_f64().unwrap() as f32,
-                        );
-                    }
+                    "box" => ConfigFile::read_box(&mut world, &object),
+                    "sphere" => ConfigFile::read_sphere(&mut world, &object),
                     a => panic!("Unknown object type: {}", a),
                 }
             }
         }
         Ok(world)
+    }
+
+    fn read_box(world: &mut World, object: &Value) {
+        let p0 = &object["p0"];
+        let p1 = &object["p1"];
+        world.add_box(
+            p0[0].as_u64().unwrap() as usize,
+            p0[1].as_u64().unwrap() as usize,
+            p0[2].as_u64().unwrap() as usize,
+            p1[0].as_u64().unwrap() as usize,
+            p1[1].as_u64().unwrap() as usize,
+            p1[2].as_u64().unwrap() as usize,
+        );
+    }
+
+    fn read_sphere(world: &mut World, object: &Value) {
+        let p = &object["point"];
+        let radius = &object["radius"];
+        world.add_sphere(
+            Point3::new(
+                p[0].as_u64().unwrap() as usize,
+                p[1].as_u64().unwrap() as usize,
+                p[2].as_u64().unwrap() as usize,
+            ),
+            radius.as_f64().unwrap() as f32,
+        );
     }
 }

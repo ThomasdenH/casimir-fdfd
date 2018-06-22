@@ -2,7 +2,6 @@ use config::SimulationConfig;
 use greenfunctions::operator::{Operator, OperatorType};
 use nalgebra::*;
 use pbr::ProgressBar;
-use rayon::iter::*;
 use scalarfield::ScalarField;
 use std::f32::consts::PI;
 use std::io::Stdout;
@@ -10,10 +9,13 @@ use std::sync::{Arc, Mutex};
 use vectorfield::VectorField;
 
 #[derive(Eq, PartialEq, Copy, Clone, Hash, Debug)]
-enum Direction {
+pub enum Direction {
     X,
     Y,
     Z,
+    NegX,
+    NegY,
+    NegZ,
 }
 
 impl Direction {
@@ -22,6 +24,9 @@ impl Direction {
             Direction::X => Vector3::new(1.0, 0.0, 0.0),
             Direction::Y => Vector3::new(0.0, 1.0, 0.0),
             Direction::Z => Vector3::new(0.0, 0.0, 1.0),
+            Direction::NegX => Vector3::new(-1.0, 0.0, 0.0),
+            Direction::NegY => Vector3::new(0.0, -1.0, 0.0),
+            Direction::NegZ => Vector3::new(0.0, 0.0, -1.0),
         }
     }
 }
@@ -44,18 +49,8 @@ impl<'a> CosineBasis<'a> {
         frequency: f32,
         permitivity: &'a ScalarField,
         simulation_config: &'a SimulationConfig,
+        normal: Direction,
     ) -> CosineBasis<'a> {
-        let normal = {
-            if p0.x == p1.x {
-                Direction::X
-            } else if p0.y == p1.y {
-                Direction::Y
-            } else if p0.z == p1.z {
-                Direction::Z
-            } else {
-                panic!("Coordinates are not on the same edge");
-            }
-        };
         CosineBasis {
             p0,
             p1,
@@ -77,39 +72,48 @@ impl<'a> CosineBasis<'a> {
 
     pub fn force(&self) -> Vector3<f32> {
         let (amax, bmax) = match self.normal {
-            Direction::X => (self.p1.y - self.p0.y, self.p1.z - self.p0.z),
-            Direction::Y => (self.p1.x - self.p0.x, self.p1.z - self.p0.z),
-            Direction::Z => (self.p1.x - self.p0.x, self.p1.y - self.p0.y),
+            Direction::X | Direction::NegX => (self.p1.y - self.p0.y, self.p1.z - self.p0.z),
+            Direction::Y | Direction::NegY => (self.p1.x - self.p0.x, self.p1.z - self.p0.z),
+            Direction::Z | Direction::NegZ => (self.p1.x - self.p0.x, self.p1.y - self.p0.y),
         };
 
-        (0..self.simulation_config.cosine_depth.min(amax))
-            .into_par_iter()
-            .flat_map(|na| {
-                let progress_bar = match self.progress_bar {
-                    Some(ref a) => Some(a.clone()),
-                    None => None,
-                };
-                (0..self.simulation_config.cosine_depth.min(bmax))
-                    .into_par_iter()
-                    .map(move |nb| {
-                        let progress_bar = match progress_bar {
-                            Some(ref a) => Some(a.clone()),
-                            None => None,
-                        };
-                        let force = self.force_for_basis(na, nb);
-                        if let Some(progress_bar) = progress_bar {
-                            progress_bar.lock().unwrap().inc();
-                        }
-                        force
-                    })
-            })
-            .sum()
+        let mut total_force = Vector3::new(0.0, 0.0, 0.0);
+        let mut remaining = amax * bmax;
+        let mut count = 0;
+
+        for n_total in 0..=(amax + bmax) {
+            let b_start = n_total.min(bmax);
+            let b_end = 0.max(n_total as i64 - amax as i64) as usize;
+
+            let mut difference = 0.0;
+
+            for nb in b_start..=b_end {
+                let na = n_total - nb;
+                let force = self.force_for_basis(na, nb);
+                total_force += force;
+                difference += force.norm();
+                count += 1;
+
+                if let Some(ref progress_bar) = self.progress_bar {
+                    progress_bar.lock().unwrap().inc();
+                    remaining -= 1;
+                }
+            }
+
+            if difference / ((b_end - b_start + 1) as f32) < total_force.norm() / count as f32 {
+                if let Some(ref progress_bar) = self.progress_bar {
+                    progress_bar.lock().unwrap().add(remaining as u64);
+                }
+                return total_force;
+            }
+        }
+        total_force
     }
 
     fn get_source(&self, na: usize, nb: usize, polarization: Direction) -> VectorField {
         let mut source_field = VectorField::new(self.permitivity.size());
         match self.normal {
-            Direction::X => {
+            Direction::X | Direction::NegX => {
                 let dy = self.p1.y - self.p0.y;
                 let dz = self.p1.z - self.p0.z;
                 let vector = 2.0 / ((dy * dz) as f32).sqrt() * polarization.vector();
@@ -121,7 +125,7 @@ impl<'a> CosineBasis<'a> {
                     }
                 }
             }
-            Direction::Y => {
+            Direction::Y | Direction::NegY => {
                 let dx = self.p1.x - self.p0.x;
                 let dz = self.p1.z - self.p0.z;
                 let vector = 2.0 / ((dx * dz) as f32).sqrt() * polarization.vector();
@@ -133,7 +137,7 @@ impl<'a> CosineBasis<'a> {
                     }
                 }
             }
-            Direction::Z => {
+            Direction::Z | Direction::NegZ => {
                 let dx = self.p1.x - self.p0.x;
                 let dy = self.p1.y - self.p0.y;
                 let vector = 2.0 / ((dx * dy) as f32).sqrt() * polarization.vector();
@@ -212,24 +216,24 @@ impl<'a> CosineBasis<'a> {
         // Integrate over the surface
         let mut green = Vector3::new(0.0, 0.0, 0.0);
         match self.normal {
-            Direction::X => {
-                for y in self.p0.y..self.p1.y {
-                    for z in self.p0.z..self.p1.z {
-                        green += x[(self.p0.x, y, z)];
+            Direction::X | Direction::NegX => {
+                for py in self.p0.y..self.p1.y {
+                    for pz in self.p0.z..self.p1.z {
+                        green += x[(self.p0.x, py, pz)];
                     }
                 }
             }
-            Direction::Y => {
+            Direction::Y | Direction::NegY => {
                 for px in self.p0.x..self.p1.x {
-                    for z in self.p0.z..self.p1.z {
-                        green += x[(px, self.p0.y, z)];
+                    for pz in self.p0.z..self.p1.z {
+                        green += x[(px, self.p0.y, pz)];
                     }
                 }
             }
-            Direction::Z => {
+            Direction::Z | Direction::NegZ => {
                 for px in self.p0.x..self.p1.x {
-                    for y in self.p0.y..self.p1.y {
-                        green += x[(px, y, self.p0.z)];
+                    for py in self.p0.y..self.p1.y {
+                        green += x[(px, py, self.p0.z)];
                     }
                 }
             }

@@ -34,7 +34,11 @@ impl BoundingBox {
 
     /// Returns true if two bounding boxes intersect or touch.
     pub fn intersects(&self, rhs: &BoundingBox) -> bool {
-        !(self.x0 > rhs.x1 || rhs.x0 > self.x1 || self.y0 > rhs.y1 || rhs.y0 > self.y1
-            || self.z0 > rhs.z1 || rhs.z0 > self.z0)
+        !(self.x0 > rhs.x1
+            || rhs.x0 > self.x1
+            || self.y0 > rhs.y1
+            || rhs.y0 > self.y1
+            || self.z0 > rhs.z1
+            || rhs.z0 > self.z0)
     }
 }

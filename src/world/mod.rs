@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 mod boundingbox;
 
 use config::SimulationConfig;
-use greenfunctions::cosinebasis::CosineBasis;
+use greenfunctions::cosinebasis::{CosineBasis, Direction};
 use pbr::ProgressBar;
 use rayon::iter::*;
 use std::fmt;
@@ -28,8 +28,8 @@ pub enum Shape {
 impl Shape {
     pub fn bbox(&self) -> &BoundingBox {
         match self {
-            Shape::Box {bbox} => &bbox,
-            Shape::Sphere {bbox, ..} => &bbox
+            Shape::Box { bbox } => &bbox,
+            Shape::Sphere { bbox, .. } => &bbox,
         }
     }
 }
@@ -69,38 +69,30 @@ impl World {
     /// Add a box to this world.
     pub fn add_box(&mut self, x0: usize, y0: usize, z0: usize, x1: usize, y1: usize, z1: usize) {
         debug_assert!(
-            x0 < x1 && y0 < y1 && z0 < z1 && x1 < self.size.x && y1 < self.size.y
+            x0 < x1
+                && y0 < y1
+                && z0 < z1
+                && x1 < self.size.x
+                && y1 < self.size.y
                 && z1 < self.size.z
         );
         let bbox = BoundingBox::new(x0, y0, z0, x1, y1, z1);
-        debug_assert!(!self.shapes
-            .iter()
-            .map(|b| match b {
-                Shape::Box { bbox } => bbox,
-                Shape::Sphere { bbox, .. } => bbox,
-            })
-            .any(|b| b.intersects(&bbox)));
+        debug_assert!(!self.shapes.iter().any(|b| b.bbox().intersects(&bbox)));
         self.shapes.push(Shape::Box { bbox });
     }
 
     pub fn add_sphere(&mut self, p: Point3<usize>, radius: f32) {
-        let x0 = p.x - radius.ceil() as usize;
-        let y0 = p.y - radius.ceil() as usize;
-        let z0 = p.z - radius.ceil() as usize;
-        let x1 = p.x - radius.ceil() as usize;
-        let y1 = p.y - radius.ceil() as usize;
-        let z1 = p.z - radius.ceil() as usize;
+        let x0 = p.x - radius.ceil() as usize - 1;
+        let y0 = p.y - radius.ceil() as usize - 1;
+        let z0 = p.z - radius.ceil() as usize - 1;
+        let x1 = p.x + radius.ceil() as usize + 1;
+        let y1 = p.y + radius.ceil() as usize + 1;
+        let z1 = p.z + radius.ceil() as usize + 1;
         debug_assert!(
             x0 > 0 && y0 > 0 && z0 > 0 && x1 < self.size.x && y1 < self.size.y && z1 < self.size.z
         );
         let bbox = BoundingBox::new(x0, y0, z0, x1, y1, z1);
-        debug_assert!(!self.shapes
-            .iter()
-            .map(|b| match b {
-                Shape::Box { bbox } => bbox,
-                Shape::Sphere { bbox, .. } => bbox,
-            })
-            .any(|b| b.intersects(&bbox)));
+        debug_assert!(!self.shapes.iter().any(|b| b.bbox().intersects(&bbox)));
         self.shapes.push(Shape::Sphere {
             bbox,
             point: p,
@@ -147,12 +139,17 @@ impl World {
         max: f32,
     ) -> Vector3<f32> {
         // Do a recursive integration. The function should be smooth.
-        if (start_value - end_value).norm() < self.simulation_config.frequency_threshold * max {
-            // The difference is small enough to do a line approximation
-            0.5 * (start_value + end_value) * (end_frequency - start_frequency)
+        let middle_frequency = 0.5 * (start_frequency + end_frequency);
+        let middle_value = self.force_on_for_freq(i, middle_frequency);
+
+        let average = (start_value + end_value) / 2.0;
+
+        if (average - middle_value).norm() * (end_frequency - start_frequency)
+            < self.simulation_config.frequency_threshold * max
+        {
+            // The change in area from the middle value vs extrapolation is less than the threshold
+            0.5 * (start_value + 2.0 * middle_value + end_value) * (end_frequency - start_frequency)
         } else {
-            let middle_frequency = 0.5 * (start_frequency + end_frequency);
-            let middle_value = self.force_on_for_freq(i, middle_frequency);
             self.integrate_force_between_frequencies(
                 i,
                 start_frequency,
@@ -174,37 +171,25 @@ impl World {
 
     fn force_on_for_freq(&self, i: usize, frequency: f32) -> Vector3<f32> {
         // Progress bar
-        let shape = &self.shapes[i];
-        let bbox = match shape {
-            Shape::Box { bbox } => bbox,
-            Shape::Sphere { bbox, .. } => bbox,
-        };
-        let dx = (bbox.x1 - bbox.x0 + 2).min(self.simulation_config.cosine_depth);
-        let dy = (bbox.y1 - bbox.y0 + 2).min(self.simulation_config.cosine_depth);
-        let dz = (bbox.z1 - bbox.z0 + 2).min(self.simulation_config.cosine_depth);
+        let bbox = &self.shapes[i].bbox();
+        let dx = bbox.x1 - bbox.x0 + 4;
+        let dy = bbox.y1 - bbox.y0 + 4;
+        let dz = bbox.z1 - bbox.z0 + 4;
         let count = 2 * (dx * dy + dy * dz + dz * dx) * (1 + self.shapes.len());
         let progress_bar = Arc::new(Mutex::new(ProgressBar::new(count as u64)));
         progress_bar.lock().unwrap().format("╢▌▌░╟");
         progress_bar.lock().unwrap().tick();
 
         let perm_all_geom = &self.permitivity_field_all_geometry(frequency);
-        let mut total_force = self.force_on_for_freq_and_geometry(
-            frequency,
-            perm_all_geom,
-            &self.shapes[i].bbox(),
-            &progress_bar,
-        );
+        let mut total_force =
+            self.force_on_for_freq_and_geometry(frequency, perm_all_geom, bbox, &progress_bar);
 
         // Discretization gives rise to forces of an object on itself. Removing these gives more
         // accurate results.
-        for bbox in &self.shapes {
-            let perm = &self.permitivity_field(frequency, &[*bbox]);
-            total_force -= self.force_on_for_freq_and_geometry(
-                frequency,
-                perm,
-                &self.shapes[i].bbox(),
-                &progress_bar,
-            );
+        for other in &self.shapes {
+            let perm = &self.permitivity_field(frequency, &[*other]);
+            total_force -=
+                self.force_on_for_freq_and_geometry(frequency, perm, bbox, &progress_bar);
         }
 
         progress_bar.lock().unwrap().finish_println("");
@@ -226,52 +211,58 @@ impl World {
         (0..6)
             .into_par_iter()
             .map(|face| match face {
-                0 => -CosineBasis::new(
-                    Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
-                    Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z0 - 1),
+                0 => CosineBasis::new(
+                    Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z0 - 2),
+                    Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z0 - 2),
                     frequency,
                     perm,
                     &self.simulation_config,
+                    Direction::NegZ,
                 ).with_progress_bar(progress_bar.clone())
                     .force(),
                 1 => CosineBasis::new(
-                    Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z1 + 2),
+                    Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z1 + 2),
                     Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
                     frequency,
                     perm,
                     &self.simulation_config,
+                    Direction::Z,
                 ).with_progress_bar(progress_bar.clone())
                     .force(),
-                2 => -CosineBasis::new(
-                    Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
-                    Point3::new(bbox.x1 + 2, bbox.y0 - 1, bbox.z1 + 2),
+                2 => CosineBasis::new(
+                    Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z0 - 2),
+                    Point3::new(bbox.x1 + 2, bbox.y0 - 2, bbox.z1 + 2),
                     frequency,
                     perm,
                     &self.simulation_config,
+                    Direction::NegY,
                 ).with_progress_bar(progress_bar.clone())
                     .force(),
                 3 => CosineBasis::new(
-                    Point3::new(bbox.x0 - 1, bbox.y1 + 2, bbox.z0 - 1),
+                    Point3::new(bbox.x0 - 2, bbox.y1 + 2, bbox.z0 - 2),
                     Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
                     frequency,
                     perm,
                     &self.simulation_config,
+                    Direction::Y,
                 ).with_progress_bar(progress_bar.clone())
                     .force(),
-                4 => -CosineBasis::new(
-                    Point3::new(bbox.x0 - 1, bbox.y0 - 1, bbox.z0 - 1),
-                    Point3::new(bbox.x0 - 1, bbox.y1 + 2, bbox.z1 + 2),
+                4 => CosineBasis::new(
+                    Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z0 - 2),
+                    Point3::new(bbox.x0 - 2, bbox.y1 + 2, bbox.z1 + 2),
                     frequency,
                     perm,
                     &self.simulation_config,
+                    Direction::NegX,
                 ).with_progress_bar(progress_bar.clone())
                     .force(),
                 5 => CosineBasis::new(
-                    Point3::new(bbox.x1 + 2, bbox.y0 - 1, bbox.z0 - 1),
+                    Point3::new(bbox.x1 + 2, bbox.y0 - 2, bbox.z0 - 2),
                     Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
                     frequency,
                     perm,
                     &self.simulation_config,
+                    Direction::X,
                 ).with_progress_bar(progress_bar.clone())
                     .force(),
 
@@ -342,7 +333,8 @@ impl World {
         let mut total = 0.0;
         for i in 0.. {
             let omega = i as f32 * 0.1;
-            let added = (omega_p * omega_p * omega_tau) / (omega * omega + omega_tau * omega_tau)
+            let added = (omega_p * omega_p * omega_tau)
+                / (omega * omega + omega_tau * omega_tau)
                 / (omega * omega + freq * freq) * 0.1;
             total += added;
             if added < 0.001 {

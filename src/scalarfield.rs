@@ -16,7 +16,11 @@ impl ScalarField {
     }
 
     pub fn set(&mut self, x: isize, y: isize, z: isize, value: f32) {
-        if x < 0 || x as usize >= self.size.x || y < 0 || y as usize >= self.size.y || z < 0
+        if x < 0
+            || x as usize >= self.size.x
+            || y < 0
+            || y as usize >= self.size.y
+            || z < 0
             || z as usize >= self.size.z
         {
             return;
@@ -111,7 +115,11 @@ impl Index<(isize, isize, isize)> for ScalarField {
 
     fn index(&self, index: (isize, isize, isize)) -> &f32 {
         let (x, y, z) = index;
-        if x < 0 || x as usize >= self.size.x || y < 0 || y as usize >= self.size.y || z < 0
+        if x < 0
+            || x as usize >= self.size.x
+            || y < 0
+            || y as usize >= self.size.y
+            || z < 0
             || z as usize >= self.size.z
         {
             &1.0
