@@ -10,6 +10,15 @@ pub struct BoundingBox {
     pub z1: usize,
 }
 
+#[derive(Debug, Fail)]
+pub enum BoundingBoxError {
+    #[fail(display = "expansion outside domain: {} expanded by {}", bbox, distance)]
+    ExpansionOutsideDomain {
+        bbox: BoundingBox,
+        distance: usize
+    }
+}
+
 impl fmt::Display for BoundingBox {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -46,8 +55,26 @@ impl BoundingBox {
         self.x0 >= rhs.x0
             && self.y0 >= rhs.y0
             && self.z0 >= rhs.z0
-            && self.x1 <= rhs.x1
-            && self.y1 <= rhs.y1
-            && self.z1 <= rhs.z1
+            && self.x1 < rhs.x1
+            && self.y1 < rhs.y1
+            && self.z1 < rhs.z1
+    }
+
+    pub fn expanded(&self, distance: usize) -> Result<BoundingBox, BoundingBoxError> {
+        if distance > self.x0 || distance > self.y0 || distance > self.z0 {
+            Err(BoundingBoxError::ExpansionOutsideDomain {
+                bbox: *self,
+                distance
+            })
+        } else {
+            Ok(BoundingBox::new(
+                self.x0 - distance,
+                self.y0 - distance,
+                self.z0 - distance,
+                self.x1 + distance,
+                self.y1 + distance,
+                self.z1 + distance
+            ))
+        }
     }
 }

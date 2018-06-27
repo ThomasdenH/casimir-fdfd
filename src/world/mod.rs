@@ -91,9 +91,15 @@ impl World {
     pub fn validate(&self) -> Result<(), WorldError> {
         let bbox_world = BoundingBox::new(0, 0, 0, self.size.x, self.size.y, self.size.z);
 
-        for (i, object_1) in self.objects.iter().enumerate() {
+        let expanded_boxes = self.objects.iter().enumerate()
+            .map(|(index, obj)| obj.bbox()
+                .expanded(2)
+                .map_err(|_| WorldError::ShapeTooCloseToEdge { index })
+            )
+            .collect::<Result<Vec<_>, _>>()?;
+
+        for (i, bbox_1) in expanded_boxes.iter().enumerate() {
             // Check for intersection with world
-            let bbox_1 = object_1.bbox();
 
             if !bbox_1.inside(&bbox_world) {
                 return Err(WorldError::ShapeTooCloseToEdge {
@@ -102,8 +108,8 @@ impl World {
             }
 
             // Check for intersection with other objects
-            for (j, object_2) in self.objects.iter().enumerate() {
-                if i < j && bbox_1.intersects(&object_2.bbox()) {
+            for (j, bbox_2) in expanded_boxes.iter().enumerate() {
+                if i < j && bbox_1.intersects(&bbox_2) {
                     return Err(WorldError::ShapesIntersect {
                         index_1: i,
                         index_2: j
