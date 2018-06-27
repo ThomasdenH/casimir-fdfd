@@ -2,11 +2,10 @@ use config::SimulationConfig;
 use greenfunctions::operator::{Operator, OperatorType};
 use nalgebra::*;
 use pbr::ProgressBar;
-use scalarfield::ScalarField;
 use std::f32::consts::PI;
 use std::io::Stdout;
 use std::sync::{Arc, Mutex};
-use vectorfield::VectorField;
+use fields::{VectorField, ScalarField};
 
 #[derive(Eq, PartialEq, Copy, Clone, Hash, Debug)]
 pub enum Direction {
@@ -100,7 +99,7 @@ impl<'a> CosineBasis<'a> {
                 }
             }
 
-            if difference / ((b_end - b_start + 1) as f32) < total_force.norm() / count as f32 {
+            if difference / ((b_start - b_end + 1) as f32) < total_force.norm() / count as f32 {
                 if let Some(ref progress_bar) = self.progress_bar {
                     progress_bar.lock().unwrap().add(remaining as u64);
                 }

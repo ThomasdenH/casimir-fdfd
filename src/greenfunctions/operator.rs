@@ -1,6 +1,5 @@
-use scalarfield::ScalarField;
 use std::ops::Mul;
-use vectorfield::VectorField;
+use fields::{ScalarField, VectorField};
 
 /// A representation of the green function operator
 #[derive(Clone, PartialEq, Debug)]

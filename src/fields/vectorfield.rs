@@ -1,7 +1,7 @@
 use nalgebra::*;
 use std::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub, SubAssign};
 
-use scalarfield::ScalarField;
+use fields::ScalarField;
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct VectorField {

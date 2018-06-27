@@ -41,4 +41,13 @@ impl BoundingBox {
             || self.z0 > rhs.z1
             || rhs.z0 > self.z0)
     }
+
+    pub fn inside(&self, rhs: &BoundingBox) -> bool {
+        self.x0 >= rhs.x0
+            && self.y0 >= rhs.y0
+            && self.z0 >= rhs.z0
+            && self.x1 <= rhs.x1
+            && self.y1 <= rhs.y1
+            && self.z1 <= rhs.z1
+    }
 }
