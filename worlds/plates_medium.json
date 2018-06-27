@@ -20,6 +20,6 @@
     "frequency_threshold": 0.005,
     "fdfd_convergence": 0.000001,
     "cosine_cutoff": 0.005,
-    "frequency_range": [0.02, 1.0]
+    "frequency_range": [0.0001, 1.0]
   }
 }

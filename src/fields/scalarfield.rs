@@ -15,19 +15,6 @@ impl ScalarField {
         }
     }
 
-    pub fn set(&mut self, x: isize, y: isize, z: isize, value: f32) {
-        if x < 0
-            || x as usize >= self.size.x
-            || y < 0
-            || y as usize >= self.size.y
-            || z < 0
-            || z as usize >= self.size.z
-        {
-            return;
-        }
-        self.scalars[x as usize + self.size.x * (y as usize + self.size.y * (z as usize))] = value;
-    }
-
     /// Perform the action 1.0 / M_i on each element.
     pub fn multiplicative_invert(&mut self) {
         self.scalars = self.scalars.map(|a| 1.0 / a);
@@ -107,6 +94,20 @@ impl Index<(usize, usize, usize)> for ScalarField {
         let (x, y, z) = index;
         debug_assert!(x < self.size.x && y < self.size.y && z < self.size.z);
         &self.scalars[x as usize + self.size.x * (y as usize + self.size.y * (z as usize))]
+    }
+}
+
+impl IndexMut<(usize, usize, usize)> for ScalarField {
+    fn index_mut<'a>(&'a mut self, index: (usize, usize, usize)) -> &'a mut f32 {
+        let (x, y, z) = index;
+        debug_assert!(x < self.size.x && y < self.size.y && z < self.size.z);
+        &mut self.scalars[x as usize + self.size.x * (y as usize + self.size.y * (z as usize))]
+    }
+}
+
+impl IndexMut<Point3<usize>> for ScalarField {
+    fn index_mut<'a>(&'a mut self, index: Point3<usize>) -> &'a mut f32 {
+        &mut self[(index.x, index.y, index.z)]
     }
 }
 

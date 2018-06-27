@@ -58,12 +58,7 @@ impl Shape {
                 for x in bbox.x0..bbox.x1 {
                     for y in bbox.y0..bbox.y1 {
                         for z in bbox.z0..bbox.z1 {
-                            field.set(
-                                x as isize,
-                                y as isize,
-                                z as isize,
-                                permitivity,
-                            );
+                            field[(x, y, z)] = permitivity;
                         }
                     }
                 }
@@ -80,12 +75,7 @@ impl Shape {
                                 (point.z - z) as f32,
                             ).norm() <= radius
                                 {
-                                    field.set(
-                                        x as isize,
-                                        y as isize,
-                                        z as isize,
-                                        permitivity,
-                                    );
+                                    field[(x, y, z)] = permitivity;
                                 }
                         }
                     }
