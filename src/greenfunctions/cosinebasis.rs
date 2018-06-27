@@ -63,9 +63,9 @@ impl<'a> CosineBasis<'a> {
 
     pub fn with_progress_bar(
         mut self,
-        progress_bar: Arc<Mutex<ProgressBar<Stdout>>>,
+        progress_bar: Option<Arc<Mutex<ProgressBar<Stdout>>>>,
     ) -> CosineBasis<'a> {
-        self.progress_bar = Some(progress_bar);
+        self.progress_bar = progress_bar;
         self
     }
 

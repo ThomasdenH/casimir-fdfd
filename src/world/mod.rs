@@ -18,7 +18,9 @@ use world::shape::Shape;
 pub struct World {
     size: Vector3<usize>,
     objects: Vec<Shape>,
-    simulation_config: SimulationConfig
+    simulation_config: SimulationConfig,
+    #[serde(skip)]
+    use_progress_bar: bool
 }
 
 pub struct ForceIterator<'a> {
@@ -50,6 +52,10 @@ pub enum WorldError {
 }
 
 impl World {
+    pub fn set_progress_bar(&mut self, enable: bool) {
+        self.use_progress_bar = enable;
+    }
+
     pub fn forces(&self) -> ForceIterator {
         ForceIterator {
             i: 0,
@@ -167,9 +173,14 @@ impl World {
         let dy = bbox.y1 - bbox.y0 + 4;
         let dz = bbox.z1 - bbox.z0 + 4;
         let count = 2 * (dx * dy + dy * dz + dz * dx) * (1 + self.objects.len());
-        let progress_bar = Arc::new(Mutex::new(ProgressBar::new(count as u64)));
-        progress_bar.lock().unwrap().format("╢▌▌░╟");
-        progress_bar.lock().unwrap().tick();
+        let progress_bar = if self.use_progress_bar {
+            let progress_bar = Arc::new(Mutex::new(ProgressBar::new(count as u64)));
+            progress_bar.lock().unwrap().format("[=>~]");
+            progress_bar.lock().unwrap().tick();
+            Some(progress_bar)
+        } else {
+            None
+        };
 
         let perm_all_geom = &self.permitivity_field_all_geometry(frequency);
         let mut total_force =
@@ -183,7 +194,9 @@ impl World {
                 self.force_on_for_freq_and_geometry(frequency, perm, bbox, &progress_bar);
         }
 
-        progress_bar.lock().unwrap().finish_println("");
+        if let Some(progress_bar) = progress_bar {
+            progress_bar.lock().unwrap().finish_println("");
+        }
         println!(
             "Force for frequency {}: ({}, {}, {})",
             frequency, total_force.x, total_force.y, total_force.z
@@ -197,7 +210,7 @@ impl World {
         frequency: f32,
         perm: &ScalarField,
         bbox: &BoundingBox,
-        progress_bar: &Arc<Mutex<ProgressBar<Stdout>>>,
+        progress_bar: &Option<Arc<Mutex<ProgressBar<Stdout>>>>,
     ) -> Vector3<f32> {
         (0..6)
             .into_par_iter()
@@ -209,7 +222,7 @@ impl World {
                     perm,
                     &self.simulation_config,
                     Direction::NegZ,
-                ).with_progress_bar(progress_bar.clone())
+                ).with_progress_bar(progress_bar.clone().map(|a| a.clone()))
                     .force(),
                 1 => CosineBasis::new(
                     Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z1 + 2),
@@ -218,7 +231,7 @@ impl World {
                     perm,
                     &self.simulation_config,
                     Direction::Z,
-                ).with_progress_bar(progress_bar.clone())
+                ).with_progress_bar(progress_bar.clone().map(|a| a.clone()))
                     .force(),
                 2 => CosineBasis::new(
                     Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z0 - 2),
@@ -227,7 +240,7 @@ impl World {
                     perm,
                     &self.simulation_config,
                     Direction::NegY,
-                ).with_progress_bar(progress_bar.clone())
+                ).with_progress_bar(progress_bar.clone().map(|a| a.clone()))
                     .force(),
                 3 => CosineBasis::new(
                     Point3::new(bbox.x0 - 2, bbox.y1 + 2, bbox.z0 - 2),
@@ -236,7 +249,7 @@ impl World {
                     perm,
                     &self.simulation_config,
                     Direction::Y,
-                ).with_progress_bar(progress_bar.clone())
+                ).with_progress_bar(progress_bar.clone().map(|a| a.clone()))
                     .force(),
                 4 => CosineBasis::new(
                     Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z0 - 2),
@@ -245,7 +258,7 @@ impl World {
                     perm,
                     &self.simulation_config,
                     Direction::NegX,
-                ).with_progress_bar(progress_bar.clone())
+                ).with_progress_bar(progress_bar.clone().map(|a| a.clone()))
                     .force(),
                 5 => CosineBasis::new(
                     Point3::new(bbox.x1 + 2, bbox.y0 - 2, bbox.z0 - 2),
@@ -254,7 +267,7 @@ impl World {
                     perm,
                     &self.simulation_config,
                     Direction::X,
-                ).with_progress_bar(progress_bar.clone())
+                ).with_progress_bar(progress_bar.clone().map(|a| a.clone()))
                     .force(),
 
                 i => panic!("Face index out of bounds: {}", i),

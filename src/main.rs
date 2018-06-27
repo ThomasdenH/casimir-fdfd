@@ -26,12 +26,15 @@ fn main() -> Result<(), Error> {
             .help("Sets the input file to use")
             .required(true)
             .index(1))
+        .arg(Arg::from_usage("-p, --progressbar 'Display a progress bar while running'"))
         .get_matches();
 
     let world_path = Path::new(matches.value_of("INPUT").unwrap());
     let world_file = File::open(world_path)?;
-    let world: World = serde_json::from_reader(world_file)?;
+    let mut world: World = serde_json::from_reader(world_file)?;
     world.validate()?;
+
+    world.set_progress_bar(matches.is_present("progressbar"));
 
     for (i, force) in world.forces().enumerate() {
         println!("Calculated force for object {}: ({}, {}, {})", i, force.x, force.y, force.z);
