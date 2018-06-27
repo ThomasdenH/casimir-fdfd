@@ -1,9 +1,9 @@
 mod boundingbox;
 mod shape;
+mod material;
 
 use nalgebra::*;
 use fields::ScalarField;
-use std::f32::consts::PI;
 use std::sync::{Arc, Mutex};
 use config::SimulationConfig;
 use greenfunctions::cosinebasis::{CosineBasis, Direction};
@@ -278,9 +278,8 @@ impl World {
     /// Returns a scalar field representing the permitivity of a vector of bounding boxes.
     fn permitivity_field(&self, freq: f32, objects: &[Shape]) -> ScalarField {
         let mut permitivity_field = ScalarField::ones(self.size);
-        let permitivity = World::gold_permitivity(freq);
         for shape in objects {
-            shape.draw_permitivity(&mut permitivity_field, permitivity);
+            shape.draw_permitivity(&mut permitivity_field, freq);
         }
         permitivity_field
     }
@@ -288,23 +287,5 @@ impl World {
     /// Returns a scalar field representing the permitivity of the entire geometry.
     fn permitivity_field_all_geometry(&self, freq: f32) -> ScalarField {
         self.permitivity_field(freq, &self.objects)
-    }
-
-    /// Calculates the permitivity of gold for a particular imaginary frequency.
-    fn gold_permitivity(freq: f32) -> f32 {
-        let omega_p = 7.79;
-        let omega_tau = 48.8;
-        let mut total = 0.0;
-        for i in 0.. {
-            let omega = i as f32 * 0.1;
-            let added = (omega_p * omega_p * omega_tau)
-                / (omega * omega + omega_tau * omega_tau)
-                / (omega * omega + freq * freq) * 0.1;
-            total += added;
-            if added < 0.001 {
-                break;
-            }
-        }
-        1.0 + 2.0 / PI * total
     }
 }

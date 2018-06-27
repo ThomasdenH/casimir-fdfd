@@ -2,6 +2,7 @@ use std::fmt;
 
 /// Contains the configuration related to the simulation itself.
 #[derive(Copy, Clone, PartialEq, Debug, Deserialize)]
+#[serde(default = "SimulationConfig::default")]
 pub struct SimulationConfig {
     /// If the force from two frequencies are within this range from eachother, no subdivision will
     /// be used in the integration

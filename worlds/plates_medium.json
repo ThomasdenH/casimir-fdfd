@@ -1,23 +1,25 @@
 {
-  "size": [40, 40, 40],
+  "size": [50, 50, 50],
   "objects": [
     {
       "Box": {
         "p0": [2, 2, 2],
-        "p1": [17, 17, 3]
+        "p1": [17, 17, 3],
+        "material": "gold"
       }
     },
     {
       "Box": {
         "p0": [2, 2, 10],
-        "p1": [17, 17, 11]
+        "p1": [17, 17, 11],
+        "material": "gold"
       }
     }
   ],
   "simulation_config": {
-    "frequency_threshold": 0.01,
+    "frequency_threshold": 0.005,
     "fdfd_convergence": 0.000001,
-    "cosine_cutoff": 0.001,
-    "frequency_range": [0.01, 1.0]
+    "cosine_cutoff": 0.005,
+    "frequency_range": [0.02, 1.0]
   }
 }
