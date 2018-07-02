@@ -51,7 +51,7 @@ impl BoundingBox {
             || self.y0 > rhs.y1
             || rhs.y0 > self.y1
             || self.z0 > rhs.z1
-            || rhs.z0 > self.z0)
+            || rhs.z0 > self.z1)
     }
 
     /// Returns whether this box is inside the `rhs`. The smaller coordinates are allowed to be at
@@ -85,5 +85,50 @@ impl BoundingBox {
                 self.z1 + distance,
             ))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use world::boundingbox::BoundingBox;
+
+    #[test]
+    fn test_inside() {
+        let outer = BoundingBox::new(0, 0, 0, 10, 10, 10);
+        let inner = BoundingBox::new(0, 0, 0, 9, 9, 9);
+        assert!(inner.inside(&outer));
+        assert!(!outer.inside(&inner));
+    }
+
+    #[test]
+    fn test_inside_not() {
+        let outer = BoundingBox::new(0, 0, 0, 10, 10, 10);
+        let inner = BoundingBox::new(0, 0, 0, 10, 10, 10);
+        assert!(!inner.inside(&outer));
+        assert!(!outer.inside(&inner));
+    }
+
+    #[test]
+    fn test_intersects() {
+        let first = BoundingBox::new(0, 0, 0, 4, 4, 4);
+        let second = BoundingBox::new(2, 2, 2, 5, 5, 5);
+        assert!(first.intersects(&second));
+        assert!(second.intersects(&first));
+    }
+
+    #[test]
+    fn test_intersects_not() {
+        let first = BoundingBox::new(0, 0, 0, 4, 4, 4);
+        let second = BoundingBox::new(5, 0, 0, 6, 3, 3);
+        assert!(!first.intersects(&second));
+        assert!(!second.intersects(&first));
+    }
+
+    #[test]
+    fn test_expanded() {
+        let first = BoundingBox::new(3, 3, 3, 4, 4, 4);
+        let expected = BoundingBox::new(0, 0, 0, 7, 7, 7);
+        assert_eq!(first.expanded(3).unwrap(), expected);
+        assert!(first.expanded(4).is_err());
     }
 }
