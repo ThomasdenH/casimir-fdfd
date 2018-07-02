@@ -196,10 +196,11 @@ impl<'a> CosineBasis<'a> {
         let mut a_p = VectorField::new(size);
 
         for _ in 0..volume {
-            let (a, b, c) = a.mul_with_temps(p.clone_to(a_p), temp1, temp2);
-            a_p = a;
-            temp1 = b;
-            temp2 = c;
+            let (next_a_p, next_temp1, next_temp2) =
+                a.mul_with_temps(p.clone_to(a_p), temp1, temp2);
+            a_p = next_a_p;
+            temp1 = next_temp1;
+            temp2 = next_temp2;
 
             let alpha = rsold / (&p * &a_p);
             x += alpha * &p;

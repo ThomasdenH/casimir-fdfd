@@ -8,6 +8,9 @@ extern crate serde_json;
 extern crate serde_derive;
 extern crate clap;
 extern crate serde;
+#[cfg(test)]
+#[macro_use]
+extern crate assert_approx_eq;
 
 mod config;
 mod fields;

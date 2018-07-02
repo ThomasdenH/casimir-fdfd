@@ -16,6 +16,9 @@ clap = "2.31.2"
 version = "0.15.1"
 features = ["serde-serialize"]
 
+[dev-dependencies]
+assert_approx_eq = "1.0.0"
+
 [profile.release]
 opt-level = 3
 lto = true

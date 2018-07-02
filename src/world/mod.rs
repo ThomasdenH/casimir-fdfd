@@ -231,63 +231,59 @@ impl World {
     ) -> Vector3<f32> {
         (0..6)
             .into_par_iter()
-            .map(|face| match face {
-                0 => CosineBasis::new(
-                    Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z0 - 2),
-                    Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z0 - 2),
-                    frequency,
-                    perm,
-                    &self.simulation_config,
-                    Direction::NegZ,
-                ).with_progress_bar(progress_bar.clone().map(|a| a.clone()))
-                    .force(),
-                1 => CosineBasis::new(
-                    Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z1 + 2),
-                    Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
-                    frequency,
-                    perm,
-                    &self.simulation_config,
-                    Direction::Z,
-                ).with_progress_bar(progress_bar.clone().map(|a| a.clone()))
-                    .force(),
-                2 => CosineBasis::new(
-                    Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z0 - 2),
-                    Point3::new(bbox.x1 + 2, bbox.y0 - 2, bbox.z1 + 2),
-                    frequency,
-                    perm,
-                    &self.simulation_config,
-                    Direction::NegY,
-                ).with_progress_bar(progress_bar.clone().map(|a| a.clone()))
-                    .force(),
-                3 => CosineBasis::new(
-                    Point3::new(bbox.x0 - 2, bbox.y1 + 2, bbox.z0 - 2),
-                    Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
-                    frequency,
-                    perm,
-                    &self.simulation_config,
-                    Direction::Y,
-                ).with_progress_bar(progress_bar.clone().map(|a| a.clone()))
-                    .force(),
-                4 => CosineBasis::new(
-                    Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z0 - 2),
-                    Point3::new(bbox.x0 - 2, bbox.y1 + 2, bbox.z1 + 2),
-                    frequency,
-                    perm,
-                    &self.simulation_config,
-                    Direction::NegX,
-                ).with_progress_bar(progress_bar.clone().map(|a| a.clone()))
-                    .force(),
-                5 => CosineBasis::new(
-                    Point3::new(bbox.x1 + 2, bbox.y0 - 2, bbox.z0 - 2),
-                    Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
-                    frequency,
-                    perm,
-                    &self.simulation_config,
-                    Direction::X,
-                ).with_progress_bar(progress_bar.clone().map(|a| a.clone()))
-                    .force(),
-
-                i => panic!("Face index out of bounds: {}", i),
+            .map(|face| {
+                (match face {
+                    0 => CosineBasis::new(
+                        Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z0 - 2),
+                        Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z0 - 2),
+                        frequency,
+                        perm,
+                        &self.simulation_config,
+                        Direction::NegZ,
+                    ),
+                    1 => CosineBasis::new(
+                        Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z1 + 2),
+                        Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
+                        frequency,
+                        perm,
+                        &self.simulation_config,
+                        Direction::Z,
+                    ),
+                    2 => CosineBasis::new(
+                        Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z0 - 2),
+                        Point3::new(bbox.x1 + 2, bbox.y0 - 2, bbox.z1 + 2),
+                        frequency,
+                        perm,
+                        &self.simulation_config,
+                        Direction::NegY,
+                    ),
+                    3 => CosineBasis::new(
+                        Point3::new(bbox.x0 - 2, bbox.y1 + 2, bbox.z0 - 2),
+                        Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
+                        frequency,
+                        perm,
+                        &self.simulation_config,
+                        Direction::Y,
+                    ),
+                    4 => CosineBasis::new(
+                        Point3::new(bbox.x0 - 2, bbox.y0 - 2, bbox.z0 - 2),
+                        Point3::new(bbox.x0 - 2, bbox.y1 + 2, bbox.z1 + 2),
+                        frequency,
+                        perm,
+                        &self.simulation_config,
+                        Direction::NegX,
+                    ),
+                    5 => CosineBasis::new(
+                        Point3::new(bbox.x1 + 2, bbox.y0 - 2, bbox.z0 - 2),
+                        Point3::new(bbox.x1 + 2, bbox.y1 + 2, bbox.z1 + 2),
+                        frequency,
+                        perm,
+                        &self.simulation_config,
+                        Direction::X,
+                    ),
+                    i => panic!("Face index out of bounds: {}", i),
+                }).with_progress_bar(progress_bar.clone().map(|a| a.clone()))
+                    .force()
             })
             .sum()
     }

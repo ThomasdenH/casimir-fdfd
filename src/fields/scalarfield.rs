@@ -27,6 +27,10 @@ impl ScalarField {
     pub fn len(&self) -> usize {
         self.scalars.len()
     }
+
+    pub fn scalars(&self) -> &DVector<f32> {
+        &self.scalars
+    }
 }
 
 impl Mul<f32> for ScalarField {
@@ -98,7 +102,7 @@ impl Index<(usize, usize, usize)> for ScalarField {
 }
 
 impl IndexMut<(usize, usize, usize)> for ScalarField {
-    fn index_mut<'a>(&'a mut self, index: (usize, usize, usize)) -> &'a mut f32 {
+    fn index_mut(&mut self, index: (usize, usize, usize)) -> &mut f32 {
         let (x, y, z) = index;
         debug_assert!(x < self.size.x && y < self.size.y && z < self.size.z);
         &mut self.scalars[x as usize + self.size.x * (y as usize + self.size.y * (z as usize))]

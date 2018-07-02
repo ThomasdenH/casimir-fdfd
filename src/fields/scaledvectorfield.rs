@@ -3,8 +3,8 @@ use nalgebra::*;
 use std::ops::{AddAssign, Mul, SubAssign};
 
 /// Represents the result of a scalar times a vector field reference. If it is added to a vector
-/// field later, it requires no owned source. Internally the addition is postponed until the next
-/// operation.
+/// field later, it requires no owned source. Internally the multiplication is postponed until the
+/// next operation.
 pub struct ScaledVectorField<'a> {
     field: &'a VectorField,
     scalar: f32,
@@ -17,6 +17,10 @@ impl<'a> ScaledVectorField<'a> {
 
     pub fn len(&self) -> usize {
         self.field.len()
+    }
+
+    pub fn field(&self) -> &VectorField {
+        self.field
     }
 }
 
@@ -42,38 +46,76 @@ impl<'a> Mul<&'a VectorField> for f32 {
     }
 }
 
+#[test]
+fn test_add_assign_scaled_vector_field() {
+    let mut field_a: VectorField = VectorField::new(Vector3::new(2, 2, 1));
+    field_a[(0, 0, 0)] = Vector3::repeat(1.0);
+    field_a[(1, 0, 0)] = Vector3::repeat(2.0);
+    field_a[(0, 1, 0)] = Vector3::repeat(3.0);
+    field_a[(1, 1, 0)] = Vector3::repeat(4.0);
+
+    let cloned_a = field_a.clone();
+    let field_b: ScaledVectorField = 2.0 * &cloned_a;
+
+    field_a += &field_b;
+
+    assert!((field_a[(0usize, 0, 0)] - Vector3::repeat(3.0)).norm() < 1e-10);
+    assert!((field_a[(1usize, 0, 0)] - Vector3::repeat(6.0)).norm() < 1e-10);
+    assert!((field_a[(0usize, 1, 0)] - Vector3::repeat(9.0)).norm() < 1e-10);
+    assert!((field_a[(1usize, 1, 0)] - Vector3::repeat(12.0)).norm() < 1e-10);
+}
+
 impl<'a, 'b> AddAssign<&'b ScaledVectorField<'a>> for VectorField {
     fn add_assign(&mut self, other: &'b ScaledVectorField) {
         debug_assert!(self.size() == other.size());
-        for i in 0..other.len() {
-            self[i] += other.scalar * other.field[i];
+        for (self_element, other_element) in self.vectors_mut()
+            .iter_mut()
+            .zip(other.field().vectors().iter())
+        {
+            *self_element += other.scalar * other_element
         }
     }
+}
+
+#[test]
+fn test_sub_assign_scaled_vector_field() {
+    let mut field_a: VectorField = VectorField::new(Vector3::new(2, 2, 1));
+    field_a[(0, 0, 0)] = Vector3::repeat(1.0);
+    field_a[(1, 0, 0)] = Vector3::repeat(2.0);
+    field_a[(0, 1, 0)] = Vector3::repeat(3.0);
+    field_a[(1, 1, 0)] = Vector3::repeat(4.0);
+
+    let cloned_a = field_a.clone();
+    let field_b: ScaledVectorField = -2.0 * &cloned_a;
+
+    field_a -= &field_b;
+
+    assert!((field_a[(0usize, 0, 0)] - Vector3::repeat(3.0)).norm() < 1e-10);
+    assert!((field_a[(1usize, 0, 0)] - Vector3::repeat(6.0)).norm() < 1e-10);
+    assert!((field_a[(0usize, 1, 0)] - Vector3::repeat(9.0)).norm() < 1e-10);
+    assert!((field_a[(1usize, 1, 0)] - Vector3::repeat(12.0)).norm() < 1e-10);
 }
 
 impl<'a, 'b> SubAssign<&'b ScaledVectorField<'a>> for VectorField {
     fn sub_assign(&mut self, other: &'b ScaledVectorField) {
         debug_assert!(self.size() == other.size());
-        for i in 0..self.len() {
-            self[i] -= other.scalar * other.field[i];
+        for (self_element, other_element) in self.vectors_mut()
+            .iter_mut()
+            .zip(other.field().vectors().iter())
+        {
+            *self_element -= other.scalar * other_element
         }
     }
 }
 
 impl<'a> AddAssign<ScaledVectorField<'a>> for VectorField {
     fn add_assign(&mut self, other: ScaledVectorField) {
-        debug_assert!(self.size() == other.size());
-        for i in 0..self.len() {
-            self[i] += other.scalar * other.field[i];
-        }
+        *self += &other;
     }
 }
 
 impl<'a> SubAssign<ScaledVectorField<'a>> for VectorField {
     fn sub_assign(&mut self, other: ScaledVectorField) {
-        debug_assert!(self.size() == other.size());
-        for i in 0..self.len() {
-            self[i] -= other.scalar * other.field[i];
-        }
+        *self -= &other;
     }
 }

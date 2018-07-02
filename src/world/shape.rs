@@ -70,9 +70,9 @@ impl Shape {
                 (point.x as f32 - radius).floor() as usize,
                 (point.y as f32 - radius).floor() as usize,
                 (point.z as f32 - radius).floor() as usize,
-                (point.x as f32 + radius).floor() as usize,
-                (point.y as f32 + radius).floor() as usize,
-                (point.z as f32 + radius).floor() as usize,
+                (point.x as f32 + radius).ceil() as usize,
+                (point.y as f32 + radius).ceil() as usize,
+                (point.z as f32 + radius).ceil() as usize,
             ),
         }
     }
@@ -80,8 +80,8 @@ impl Shape {
     /// Draw the permittivity corresponding to this shape on the provided `ScalarField`. Since the
     /// permittivity can be dependent on the frequency, it should be passed as well.
     pub fn draw_permittivity(&self, field: &mut ScalarField, frequency: f32) {
-        match self {
-            &Shape::Box { material, .. } => {
+        match *self {
+            Shape::Box { material, .. } => {
                 let permittivity = material.permittivity(frequency);
                 let bbox = self.bbox();
                 for x in bbox.x0..bbox.x1 {
@@ -92,7 +92,7 @@ impl Shape {
                     }
                 }
             }
-            &Shape::Sphere {
+            Shape::Sphere {
                 point,
                 radius,
                 material,
@@ -115,5 +115,59 @@ impl Shape {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use world::shape::Shape;
+    use nalgebra::Point3;
+
+    #[test]
+    fn test_sphere_bbox_integer_radius() {
+        let sphere = Shape::new_sphere(
+            Point3::new(5, 5, 5),
+            2.0,
+            "gold".parse().unwrap()
+        );
+        let bbox = sphere.bbox();
+        assert_eq!(bbox.x0, 3);
+        assert_eq!(bbox.y0, 3);
+        assert_eq!(bbox.z0, 3);
+        assert_eq!(bbox.x1, 7);
+        assert_eq!(bbox.y1, 7);
+        assert_eq!(bbox.z1, 7);
+    }
+
+    #[test]
+    fn test_sphere_bbox_float_radius() {
+        let sphere = Shape::new_sphere(
+            Point3::new(5, 5, 5),
+            2.5,
+            "gold".parse().unwrap()
+        );
+        let bbox = sphere.bbox();
+        assert_eq!(bbox.x0, 2);
+        assert_eq!(bbox.y0, 2);
+        assert_eq!(bbox.z0, 2);
+        assert_eq!(bbox.x1, 8);
+        assert_eq!(bbox.y1, 8);
+        assert_eq!(bbox.z1, 8);
+    }
+
+    #[test]
+    fn test_box_bbox_integer_radius() {
+        let box_shape = Shape::new_box(
+            Point3::new(5, 5, 5),
+            Point3::new(7, 7, 7),
+            "gold".parse().unwrap()
+        );
+        let bbox = box_shape.bbox();
+        assert_eq!(bbox.x0, 5);
+        assert_eq!(bbox.y0, 5);
+        assert_eq!(bbox.z0, 5);
+        assert_eq!(bbox.x1, 7);
+        assert_eq!(bbox.y1, 7);
+        assert_eq!(bbox.z1, 7);
     }
 }
