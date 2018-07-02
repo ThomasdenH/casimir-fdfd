@@ -1,5 +1,6 @@
 use std::fmt;
 
+/// A box aligned with the grid.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct BoundingBox {
     pub x0: usize,
@@ -10,13 +11,12 @@ pub struct BoundingBox {
     pub z1: usize,
 }
 
+/// This error is returned when expanding the `BoundingBox` below the 0 boundary.
 #[derive(Debug, Fail)]
-pub enum BoundingBoxError {
-    #[fail(display = "expansion outside domain: {} expanded by {}", bbox, distance)]
-    ExpansionOutsideDomain {
-        bbox: BoundingBox,
-        distance: usize
-    }
+#[fail(display = "expansion outside domain: {} expanded by {}", bbox, distance)]
+pub struct ExpansionOutsideDomainError {
+    bbox: BoundingBox,
+    distance: usize,
 }
 
 impl fmt::Display for BoundingBox {
@@ -30,6 +30,8 @@ impl fmt::Display for BoundingBox {
 }
 
 impl BoundingBox {
+    /// Create a new `BoundingBox`. The smallest coordinates are (`x0`, `y0`, `z0`), and the largest
+    /// coordinates are (`x1`, `y1`, `z1`).
     pub fn new(x0: usize, y0: usize, z0: usize, x1: usize, y1: usize, z1: usize) -> BoundingBox {
         BoundingBox {
             x0,
@@ -41,7 +43,8 @@ impl BoundingBox {
         }
     }
 
-    /// Returns true if two bounding boxes intersect or touch.
+    /// Returns true if two bounding boxes intersect or touch. The order of the boxes does not
+    /// matter.
     pub fn intersects(&self, rhs: &BoundingBox) -> bool {
         !(self.x0 > rhs.x1
             || rhs.x0 > self.x1
@@ -51,6 +54,9 @@ impl BoundingBox {
             || rhs.z0 > self.z0)
     }
 
+    /// Returns whether this box is inside the `rhs`. The smaller coordinates are allowed to be at
+    /// the boundary, while the bigger coordinates must be smaller than the surrounding box to be
+    /// inside.
     pub fn inside(&self, rhs: &BoundingBox) -> bool {
         self.x0 >= rhs.x0
             && self.y0 >= rhs.y0
@@ -60,11 +66,14 @@ impl BoundingBox {
             && self.z1 < rhs.z1
     }
 
-    pub fn expanded(&self, distance: usize) -> Result<BoundingBox, BoundingBoxError> {
+    /// Return an expanded version of this box. This function returns a
+    /// `Result<BoundingBox, ExpansionOutsideDomainError>` because the expansion could cause an
+    /// underflow.
+    pub fn expanded(&self, distance: usize) -> Result<BoundingBox, ExpansionOutsideDomainError> {
         if distance > self.x0 || distance > self.y0 || distance > self.z0 {
-            Err(BoundingBoxError::ExpansionOutsideDomain {
+            Err(ExpansionOutsideDomainError {
                 bbox: *self,
-                distance
+                distance,
             })
         } else {
             Ok(BoundingBox::new(
@@ -73,7 +82,7 @@ impl BoundingBox {
                 self.z0 - distance,
                 self.x1 + distance,
                 self.y1 + distance,
-                self.z1 + distance
+                self.z1 + distance,
             ))
         }
     }

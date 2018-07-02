@@ -1,11 +1,11 @@
 use config::SimulationConfig;
+use fields::{ScalarField, VectorField};
 use greenfunctions::operator::{Operator, OperatorType};
 use nalgebra::*;
 use pbr::ProgressBar;
 use std::f32::consts::PI;
 use std::io::Stdout;
 use std::sync::{Arc, Mutex};
-use fields::{VectorField, ScalarField};
 
 #[derive(Eq, PartialEq, Copy, Clone, Hash, Debug)]
 pub enum Direction {

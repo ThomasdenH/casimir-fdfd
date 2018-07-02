@@ -1,6 +1,6 @@
+use fields::VectorField;
 use nalgebra::*;
 use std::ops::{AddAssign, Mul, SubAssign};
-use fields::VectorField;
 
 /// Represents the result of a scalar times a vector field reference. If it is added to a vector
 /// field later, it requires no owned source. Internally the addition is postponed until the next

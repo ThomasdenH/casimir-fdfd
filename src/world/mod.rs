@@ -1,31 +1,35 @@
 mod boundingbox;
-mod shape;
 mod material;
+mod shape;
 
-use nalgebra::*;
-use fields::ScalarField;
-use std::sync::{Arc, Mutex};
 use config::SimulationConfig;
+use fields::ScalarField;
 use greenfunctions::cosinebasis::{CosineBasis, Direction};
+use nalgebra::*;
 use pbr::ProgressBar;
 use rayon::iter::*;
 use std::io::Stdout;
+use std::sync::{Arc, Mutex};
 use world::boundingbox::BoundingBox;
 use world::shape::Shape;
 
-/// A struct representing the geometry
+/// A struct representing the world.
 #[derive(PartialEq, Clone, Debug, Deserialize)]
 pub struct World {
+    /// The grid size corresponding to this world.
     size: Vector3<usize>,
+    /// The list with the different shapes.
     objects: Vec<Shape>,
+    /// The simulation configuration.
     simulation_config: SimulationConfig,
     #[serde(skip)]
-    use_progress_bar: bool
+    use_progress_bar: bool,
 }
 
+/// A struct that iterates over the different forces of the objects.
 pub struct ForceIterator<'a> {
     i: usize,
-    world: &'a World
+    world: &'a World,
 }
 
 impl<'a> Iterator for ForceIterator<'a> {
@@ -42,28 +46,28 @@ impl<'a> Iterator for ForceIterator<'a> {
     }
 }
 
+/// These errors can be thrown when validating a world.
 #[derive(Debug, Fail)]
 pub enum WorldError {
     #[fail(display = "shape {} too close to edge", index)]
     ShapeTooCloseToEdge { index: usize },
 
     #[fail(display = "bounding boxes of shapes {} and {} intersect", index_1, index_2)]
-    ShapesIntersect { index_1: usize, index_2: usize }
+    ShapesIntersect { index_1: usize, index_2: usize },
 }
 
 impl World {
+    /// Enable or disable the progress bar for the simulation.
     pub fn set_progress_bar(&mut self, enable: bool) {
         self.use_progress_bar = enable;
     }
 
+    /// Obtain a force iterator for all objects in this world.
     pub fn forces(&self) -> ForceIterator {
-        ForceIterator {
-            i: 0,
-            world: &self
-        }
+        ForceIterator { i: 0, world: &self }
     }
 
-    /// Compute the force on the n'th object.
+    /// Compute the force on the `i`'th object.
     pub fn force_on(&self, i: usize) -> Vector3<f32> {
         println!("Geometry:");
         println!(
@@ -92,25 +96,36 @@ impl World {
         )
     }
 
-    /// Checks whether the bounding boxes of any of the objects intersect. If they do, the geometry
-    /// might be too complicated, or the distance between objects could be too small.
+    /// This function validates the geometry of the world. The function should be called, because it
+    /// guarantees overflows later on in the simulation.
+    ///
+    /// # Errors
+    /// - If any of the shapes is too close to the world border, the simulation can't be run and a
+    /// `WorldError::ShapeTooCloseToEdge` will be returned. To fix this, move the object or increase
+    /// the grid size.
+    ///
+    /// - If any of the objects are too close too eachother, their boundingboxes might intersect and
+    /// the results will be invalid. If this is the case, a `WorldError::ShapesIntersect` will be
+    /// returned. The violating shape indexes will be contained within. To fix this, move one or
+    /// both of the objects.
     pub fn validate(&self) -> Result<(), WorldError> {
         let bbox_world = BoundingBox::new(0, 0, 0, self.size.x, self.size.y, self.size.z);
 
-        let expanded_boxes = self.objects.iter().enumerate()
-            .map(|(index, obj)| obj.bbox()
-                .expanded(2)
-                .map_err(|_| WorldError::ShapeTooCloseToEdge { index })
-            )
+        let expanded_boxes = self.objects
+            .iter()
+            .enumerate()
+            .map(|(index, obj)| {
+                obj.bbox()
+                    .expanded(2)
+                    .map_err(|_| WorldError::ShapeTooCloseToEdge { index })
+            })
             .collect::<Result<Vec<_>, _>>()?;
 
         for (i, bbox_1) in expanded_boxes.iter().enumerate() {
             // Check for intersection with world
 
             if !bbox_1.inside(&bbox_world) {
-                return Err(WorldError::ShapeTooCloseToEdge {
-                    index: i
-                });
+                return Err(WorldError::ShapeTooCloseToEdge { index: i });
             }
 
             // Check for intersection with other objects
@@ -118,7 +133,7 @@ impl World {
                 if i < j && bbox_1.intersects(&bbox_2) {
                     return Err(WorldError::ShapesIntersect {
                         index_1: i,
-                        index_2: j
+                        index_2: j,
                     });
                 }
             }
@@ -182,14 +197,14 @@ impl World {
             None
         };
 
-        let perm_all_geom = &self.permitivity_field_all_geometry(frequency);
+        let perm_all_geom = &self.permittivity_field_all_geometry(frequency);
         let mut total_force =
             self.force_on_for_freq_and_geometry(frequency, perm_all_geom, bbox, &progress_bar);
 
         // Discretization gives rise to forces of an object on itself. Removing these gives more
         // accurate results.
         for other in &self.objects {
-            let perm = &self.permitivity_field(frequency, &[*other]);
+            let perm = &self.permittivity_field(frequency, &[*other]);
             total_force -=
                 self.force_on_for_freq_and_geometry(frequency, perm, bbox, &progress_bar);
         }
@@ -205,6 +220,8 @@ impl World {
         total_force
     }
 
+    /// Compute the force on the geometry inside `BoundingBox`, for the given permittivity field
+    /// `perm` and `BoundingBox` `bbox`.
     fn force_on_for_freq_and_geometry(
         &self,
         frequency: f32,
@@ -275,17 +292,17 @@ impl World {
             .sum()
     }
 
-    /// Returns a scalar field representing the permitivity of a vector of bounding boxes.
-    fn permitivity_field(&self, freq: f32, objects: &[Shape]) -> ScalarField {
-        let mut permitivity_field = ScalarField::ones(self.size);
+    /// Returns a scalar field representing the permittivity of a vector of bounding boxes.
+    fn permittivity_field(&self, freq: f32, objects: &[Shape]) -> ScalarField {
+        let mut permittivity_field = ScalarField::ones(self.size);
         for shape in objects {
-            shape.draw_permitivity(&mut permitivity_field, freq);
+            shape.draw_permittivity(&mut permittivity_field, freq);
         }
-        permitivity_field
+        permittivity_field
     }
 
-    /// Returns a scalar field representing the permitivity of the entire geometry.
-    fn permitivity_field_all_geometry(&self, freq: f32) -> ScalarField {
-        self.permitivity_field(freq, &self.objects)
+    /// Returns a scalar field representing the permittivity of the entire geometry.
+    fn permittivity_field_all_geometry(&self, freq: f32) -> ScalarField {
+        self.permittivity_field(freq, &self.objects)
     }
 }

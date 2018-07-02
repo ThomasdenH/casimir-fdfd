@@ -1,6 +1,7 @@
 use std::fmt;
 
-/// Contains the configuration related to the simulation itself.
+/// Contains the configuration related to the simulation itself. Generally, these settings determine
+/// the accuracy of the result and the efficiency of the simulation.
 #[derive(Copy, Clone, PartialEq, Debug, Deserialize)]
 #[serde(default = "SimulationConfig::default")]
 pub struct SimulationConfig {
@@ -20,10 +21,10 @@ pub struct SimulationConfig {
 impl Default for SimulationConfig {
     fn default() -> SimulationConfig {
         SimulationConfig {
-            frequency_threshold: 0.01,
+            frequency_threshold: 0.005,
             fdfd_convergence: 0.00001,
-            cosine_cutoff: 0.01,
-            frequency_range: [0.01, 1.0],
+            cosine_cutoff: 0.005,
+            frequency_range: [0.0001, 1.0],
         }
     }
 }
