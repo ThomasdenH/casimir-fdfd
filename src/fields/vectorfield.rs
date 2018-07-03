@@ -158,28 +158,6 @@ impl<'a> Sub<VectorField> for &'a VectorField {
     }
 }
 
-#[test]
-fn mul_vector_field_scalar_field() {
-    let size = Vector3::new(2, 2, 1);
-    let mut vector_field = VectorField::new(size);
-    vector_field[(0, 0, 0)] = Vector3::repeat(1.0);
-    vector_field[(1, 0, 0)] = Vector3::repeat(2.0);
-    vector_field[(0, 1, 0)] = Vector3::repeat(3.0);
-    vector_field[(1, 1, 0)] = Vector3::repeat(4.0);
-
-    let mut scalar_field = ScalarField::ones(size);
-    scalar_field[(0, 0, 0)] = 2.0;
-    scalar_field[(1, 0, 0)] = 3.0;
-    scalar_field[(0, 1, 0)] = 4.0;
-    scalar_field[(1, 1, 0)] = 5.0;
-
-    let result = vector_field * &scalar_field;
-    assert!((result[(0usize, 0, 0)] - Vector3::repeat(2.0)).norm() < 1e-10);
-    assert!((result[(1usize, 0, 0)] - Vector3::repeat(6.0)).norm() < 1e-10);
-    assert!((result[(0usize, 1, 0)] - Vector3::repeat(12.0)).norm() < 1e-10);
-    assert!((result[(1usize, 1, 0)] - Vector3::repeat(20.0)).norm() < 1e-10);
-}
-
 impl<'a> Mul<&'a ScalarField> for VectorField {
     type Output = VectorField;
 
@@ -190,28 +168,6 @@ impl<'a> Mul<&'a ScalarField> for VectorField {
         }
         self
     }
-}
-
-#[test]
-fn div_vector_field_scalar_field() {
-    let size = Vector3::new(2, 2, 1);
-    let mut vector_field = VectorField::new(size);
-    vector_field[(0, 0, 0)] = Vector3::repeat(1.0);
-    vector_field[(1, 0, 0)] = Vector3::repeat(2.0);
-    vector_field[(0, 1, 0)] = Vector3::repeat(3.0);
-    vector_field[(1, 1, 0)] = Vector3::repeat(4.0);
-
-    let mut scalar_field = ScalarField::ones(size);
-    scalar_field[(0, 0, 0)] = 2.0;
-    scalar_field[(1, 0, 0)] = 3.0;
-    scalar_field[(0, 1, 0)] = 4.0;
-    scalar_field[(1, 1, 0)] = 5.0;
-
-    let result = vector_field / &scalar_field;
-    assert!((result[(0usize, 0, 0)] - Vector3::repeat(0.5)).norm() < 1e-10);
-    assert!((result[(1usize, 0, 0)] - Vector3::repeat(2.0 / 3.0)).norm() < 1e-10);
-    assert!((result[(0usize, 1, 0)] - Vector3::repeat(0.75)).norm() < 1e-10);
-    assert!((result[(1usize, 1, 0)] - Vector3::repeat(0.8)).norm() < 1e-10);
 }
 
 impl<'a> Div<&'a ScalarField> for VectorField {
@@ -226,50 +182,17 @@ impl<'a> Div<&'a ScalarField> for VectorField {
     }
 }
 
-#[test]
-fn mul_vector_field_vector_field() {
-    let size = Vector3::new(2, 2, 1);
-
-    let mut vector_field = VectorField::new(size);
-    vector_field[(0, 0, 0)] = Vector3::repeat(1.0);
-    vector_field[(1, 0, 0)] = Vector3::repeat(2.0);
-    vector_field[(0, 1, 0)] = Vector3::repeat(3.0);
-    vector_field[(1, 1, 0)] = Vector3::repeat(4.0);
-
-    let mut vector_field_2 = VectorField::new(size);
-    vector_field_2[(0, 0, 0)] = Vector3::repeat(4.0);
-    vector_field_2[(1, 0, 0)] = Vector3::repeat(3.0);
-    vector_field_2[(0, 1, 0)] = Vector3::repeat(2.0);
-    vector_field_2[(1, 1, 0)] = Vector3::repeat(1.0);
-
-    assert!(((&vector_field * &vector_field_2) - 60.0).abs() < 1e-10);
-}
-
 impl<'a, 'b> Mul<&'a VectorField> for &'b VectorField {
     type Output = f32;
 
     fn mul(self, rhs: &'a VectorField) -> Self::Output {
         debug_assert!(self.size() == rhs.size());
-        self.vectors.iter().zip(rhs.vectors.iter())
+        self.vectors
+            .iter()
+            .zip(rhs.vectors.iter())
             .map(|(element_self, element_other)| element_self.dot(element_other))
             .sum()
     }
-}
-
-#[test]
-fn mul_f32_vector_field() {
-    let mut field: VectorField = VectorField::new(Vector3::new(2, 2, 1));
-    field[(0, 0, 0)] = Vector3::repeat(0.5);
-    field[(1, 0, 0)] = Vector3::repeat(1.0);
-    field[(0, 1, 0)] = Vector3::repeat(1.5);
-    field[(1, 1, 0)] = Vector3::repeat(2.0);
-
-    let result = 2.0 * field;
-
-    assert!((result[(0usize, 0, 0)] - Vector3::repeat(1.0)).norm() < 1e-10);
-    assert!((result[(1usize, 0, 0)] - Vector3::repeat(2.0)).norm() < 1e-10);
-    assert!((result[(0usize, 1, 0)] - Vector3::repeat(3.0)).norm() < 1e-10);
-    assert!((result[(1usize, 1, 0)] - Vector3::repeat(4.0)).norm() < 1e-10);
 }
 
 impl Mul<VectorField> for f32 {
@@ -354,22 +277,6 @@ impl IndexMut<usize> for VectorField {
     }
 }
 
-#[test]
-fn neg_vector_field() {
-    let mut field: VectorField = VectorField::new(Vector3::new(2, 2, 1));
-    field[(0, 0, 0)] = Vector3::repeat(0.5);
-    field[(1, 0, 0)] = Vector3::repeat(1.0);
-    field[(0, 1, 0)] = Vector3::repeat(1.5);
-    field[(1, 1, 0)] = Vector3::repeat(2.0);
-
-    let result = -field;
-
-    assert!((result[(0usize, 0, 0)] - Vector3::repeat(-0.5)).norm() < 1e-10);
-    assert!((result[(1usize, 0, 0)] - Vector3::repeat(-1.0)).norm() < 1e-10);
-    assert!((result[(0usize, 1, 0)] - Vector3::repeat(-1.5)).norm() < 1e-10);
-    assert!((result[(1usize, 1, 0)] - Vector3::repeat(-2.0)).norm() < 1e-10);
-}
-
 impl Neg for VectorField {
     type Output = VectorField;
     fn neg(mut self) -> Self::Output {
@@ -393,5 +300,105 @@ impl<'a> SubAssign<&'a VectorField> for VectorField {
         for i in 0..self.vectors.len() {
             self[i] -= rhs[i];
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn neg_vector_field() {
+        let mut field: VectorField = VectorField::new(Vector3::new(2, 2, 1));
+        field[(0, 0, 0)] = Vector3::repeat(0.5);
+        field[(1, 0, 0)] = Vector3::repeat(1.0);
+        field[(0, 1, 0)] = Vector3::repeat(1.5);
+        field[(1, 1, 0)] = Vector3::repeat(2.0);
+
+        let result = -field;
+
+        assert!((result[(0usize, 0, 0)] - Vector3::repeat(-0.5)).norm() < 1e-10);
+        assert!((result[(1usize, 0, 0)] - Vector3::repeat(-1.0)).norm() < 1e-10);
+        assert!((result[(0usize, 1, 0)] - Vector3::repeat(-1.5)).norm() < 1e-10);
+        assert!((result[(1usize, 1, 0)] - Vector3::repeat(-2.0)).norm() < 1e-10);
+    }
+
+    #[test]
+    fn mul_f32_vector_field() {
+        let mut field: VectorField = VectorField::new(Vector3::new(2, 2, 1));
+        field[(0, 0, 0)] = Vector3::repeat(0.5);
+        field[(1, 0, 0)] = Vector3::repeat(1.0);
+        field[(0, 1, 0)] = Vector3::repeat(1.5);
+        field[(1, 1, 0)] = Vector3::repeat(2.0);
+
+        let result = 2.0 * field;
+
+        assert!((result[(0usize, 0, 0)] - Vector3::repeat(1.0)).norm() < 1e-10);
+        assert!((result[(1usize, 0, 0)] - Vector3::repeat(2.0)).norm() < 1e-10);
+        assert!((result[(0usize, 1, 0)] - Vector3::repeat(3.0)).norm() < 1e-10);
+        assert!((result[(1usize, 1, 0)] - Vector3::repeat(4.0)).norm() < 1e-10);
+    }
+
+    #[test]
+    fn mul_vector_field_vector_field() {
+        let size = Vector3::new(2, 2, 1);
+
+        let mut vector_field = VectorField::new(size);
+        vector_field[(0, 0, 0)] = Vector3::repeat(1.0);
+        vector_field[(1, 0, 0)] = Vector3::repeat(2.0);
+        vector_field[(0, 1, 0)] = Vector3::repeat(3.0);
+        vector_field[(1, 1, 0)] = Vector3::repeat(4.0);
+
+        let mut vector_field_2 = VectorField::new(size);
+        vector_field_2[(0, 0, 0)] = Vector3::repeat(4.0);
+        vector_field_2[(1, 0, 0)] = Vector3::repeat(3.0);
+        vector_field_2[(0, 1, 0)] = Vector3::repeat(2.0);
+        vector_field_2[(1, 1, 0)] = Vector3::repeat(1.0);
+
+        assert!(((&vector_field * &vector_field_2) - 60.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn div_vector_field_scalar_field() {
+        let size = Vector3::new(2, 2, 1);
+        let mut vector_field = VectorField::new(size);
+        vector_field[(0, 0, 0)] = Vector3::repeat(1.0);
+        vector_field[(1, 0, 0)] = Vector3::repeat(2.0);
+        vector_field[(0, 1, 0)] = Vector3::repeat(3.0);
+        vector_field[(1, 1, 0)] = Vector3::repeat(4.0);
+
+        let mut scalar_field = ScalarField::ones(size);
+        scalar_field[(0, 0, 0)] = 2.0;
+        scalar_field[(1, 0, 0)] = 3.0;
+        scalar_field[(0, 1, 0)] = 4.0;
+        scalar_field[(1, 1, 0)] = 5.0;
+
+        let result = vector_field / &scalar_field;
+        assert!((result[(0usize, 0, 0)] - Vector3::repeat(0.5)).norm() < 1e-10);
+        assert!((result[(1usize, 0, 0)] - Vector3::repeat(2.0 / 3.0)).norm() < 1e-10);
+        assert!((result[(0usize, 1, 0)] - Vector3::repeat(0.75)).norm() < 1e-10);
+        assert!((result[(1usize, 1, 0)] - Vector3::repeat(0.8)).norm() < 1e-10);
+    }
+
+    #[test]
+    fn mul_vector_field_scalar_field() {
+        let size = Vector3::new(2, 2, 1);
+        let mut vector_field = VectorField::new(size);
+        vector_field[(0, 0, 0)] = Vector3::repeat(1.0);
+        vector_field[(1, 0, 0)] = Vector3::repeat(2.0);
+        vector_field[(0, 1, 0)] = Vector3::repeat(3.0);
+        vector_field[(1, 1, 0)] = Vector3::repeat(4.0);
+
+        let mut scalar_field = ScalarField::ones(size);
+        scalar_field[(0, 0, 0)] = 2.0;
+        scalar_field[(1, 0, 0)] = 3.0;
+        scalar_field[(0, 1, 0)] = 4.0;
+        scalar_field[(1, 1, 0)] = 5.0;
+
+        let result = vector_field * &scalar_field;
+        assert!((result[(0usize, 0, 0)] - Vector3::repeat(2.0)).norm() < 1e-10);
+        assert!((result[(1usize, 0, 0)] - Vector3::repeat(6.0)).norm() < 1e-10);
+        assert!((result[(0usize, 1, 0)] - Vector3::repeat(12.0)).norm() < 1e-10);
+        assert!((result[(1usize, 1, 0)] - Vector3::repeat(20.0)).norm() < 1e-10);
     }
 }

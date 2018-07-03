@@ -120,16 +120,12 @@ impl Shape {
 
 #[cfg(test)]
 mod tests {
-    use world::shape::Shape;
     use nalgebra::Point3;
+    use world::shape::Shape;
 
     #[test]
     fn test_sphere_bbox_integer_radius() {
-        let sphere = Shape::new_sphere(
-            Point3::new(5, 5, 5),
-            2.0,
-            "gold".parse().unwrap()
-        );
+        let sphere = Shape::new_sphere(Point3::new(5, 5, 5), 2.0, "gold".parse().unwrap());
         let bbox = sphere.bbox();
         assert_eq!(bbox.x0, 3);
         assert_eq!(bbox.y0, 3);
@@ -141,11 +137,7 @@ mod tests {
 
     #[test]
     fn test_sphere_bbox_float_radius() {
-        let sphere = Shape::new_sphere(
-            Point3::new(5, 5, 5),
-            2.5,
-            "gold".parse().unwrap()
-        );
+        let sphere = Shape::new_sphere(Point3::new(5, 5, 5), 2.5, "gold".parse().unwrap());
         let bbox = sphere.bbox();
         assert_eq!(bbox.x0, 2);
         assert_eq!(bbox.y0, 2);
@@ -160,7 +152,7 @@ mod tests {
         let box_shape = Shape::new_box(
             Point3::new(5, 5, 5),
             Point3::new(7, 7, 7),
-            "gold".parse().unwrap()
+            "gold".parse().unwrap(),
         );
         let bbox = box_shape.bbox();
         assert_eq!(bbox.x0, 5);

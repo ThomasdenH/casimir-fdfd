@@ -8,6 +8,7 @@ pub struct ScalarField {
 }
 
 impl ScalarField {
+    /// Constructs a new `ScalarField` filled with the value 1.
     pub fn ones(size: Vector3<usize>) -> ScalarField {
         ScalarField {
             size,
@@ -161,5 +162,106 @@ impl Index<usize> for ScalarField {
 impl IndexMut<usize> for ScalarField {
     fn index_mut(&mut self, index: usize) -> &mut f32 {
         &mut self.scalars[index]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use fields::ScalarField;
+    use nalgebra::*;
+
+    #[test]
+    fn test_ones_and_properties() {
+        let size = Vector3::new(4, 4, 4);
+        let field = ScalarField::ones(size);
+        assert_eq!(field.size(), size);
+        assert_eq!(field.len(), 4 * 4 * 4);
+        for value in field.scalars().iter() {
+            assert_approx_eq!(value, 1.0, 1e-10);
+        }
+    }
+
+    #[test]
+    fn multiplicative_invert() {
+        let mut field = ScalarField::ones(Vector3::new(2, 2, 1));
+        field[(0, 0, 0)] = 2.0;
+        field[(1, 0, 0)] = 10.0;
+        field[(0, 1, 0)] = 0.1;
+        field[(1, 1, 0)] = 0.2;
+        field.multiplicative_invert();
+        assert_approx_eq!(field[(0usize, 0, 0)], 0.5, 1e-10);
+        assert_approx_eq!(field[(1usize, 0, 0)], 0.1, 1e-10);
+        assert_approx_eq!(field[(0usize, 1, 0)], 10.0, 1e-10);
+        assert_approx_eq!(field[(1usize, 1, 0)], 5.0, 1e-10);
+    }
+
+    #[test]
+    fn mul_scalar_field_f32() {
+        let size = Vector3::new(4, 4, 4);
+        let field = ScalarField::ones(size) * 3.0;
+        for value in field.scalars().iter() {
+            assert_approx_eq!(value, 3.0, 1e-10);
+        }
+    }
+
+    #[test]
+    fn mul_assign_scalar_field_f32() {
+        let size = Vector3::new(3, 2, 5);
+        let mut field = ScalarField::ones(size);
+        field *= 9.0;
+        for value in field.scalars().iter() {
+            assert_approx_eq!(value, 9.0, 1e-10);
+        }
+    }
+
+    #[test]
+    fn mul_f32_scalar_field() {
+        let size = Vector3::new(4, 4, 4);
+        let field = 4.0 * ScalarField::ones(size);
+        for value in field.scalars().iter() {
+            assert_approx_eq!(value, 4.0, 1e-10);
+        }
+    }
+
+    #[test]
+    fn add_scalar_field_scalar_field() {
+        let size = Vector3::new(4, 4, 4);
+        let field1 = 3.0 * ScalarField::ones(size);
+        let field2 = 4.0 * ScalarField::ones(size);
+        for value in (field1 + &field2).scalars().iter() {
+            assert_approx_eq!(value, 7.0, 1e-10);
+        }
+    }
+
+    #[test]
+    fn sub_scalar_field_scalar_field() {
+        let size = Vector3::new(4, 3, 4);
+        let field1 = 3.0 * ScalarField::ones(size);
+        let field2 = 4.0 * ScalarField::ones(size);
+        for value in (field1 - &field2).scalars().iter() {
+            assert_approx_eq!(value, -1.0, 1e-10);
+        }
+    }
+
+    #[test]
+    fn add_assign_scalar_field_scalar_field() {
+        let size = Vector3::new(4, 4, 4);
+        let mut field1 = 3.0 * ScalarField::ones(size);
+        let field2 = 4.0 * ScalarField::ones(size);
+        field1 += &field2;
+        for value in field1.scalars().iter() {
+            assert_approx_eq!(value, 7.0, 1e-10);
+        }
+    }
+
+    #[test]
+    fn sub_assign_scalar_field_scalar_field() {
+        let size = Vector3::new(4, 3, 4);
+        let mut field1 = 3.0 * ScalarField::ones(size);
+        let field2 = 4.0 * ScalarField::ones(size);
+        field1 -= &field2;
+        for value in field1.scalars().iter() {
+            assert_approx_eq!(value, -1.0, 1e-10);
+        }
     }
 }
