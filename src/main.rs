@@ -12,10 +12,10 @@ extern crate serde;
 #[macro_use]
 extern crate assert_approx_eq;
 
-mod config;
-mod fields;
-mod greenfunctions;
-mod world;
+pub mod config;
+pub mod fields;
+pub mod greenfunctions;
+pub mod world;
 
 use clap::{App, Arg};
 use failure::Error;

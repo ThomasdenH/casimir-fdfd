@@ -1,14 +1,24 @@
 [![Build Status](https://travis-ci.org/ThomasdenH/casimir-fdfd.svg?branch=master)](https://travis-ci.org/ThomasdenH/casimir-fdfd)
+[![](http://meritbadge.herokuapp.com/casimir-fdfd)](https://crates.io/crates/casimir-fdfd)
 [![Rust](https://img.shields.io/badge/rust-1.27%2B-blue.svg?maxAge=3600)](https://github.com/rust-lang/regex)
 
 # casimir-fdfd
 An implementation of a stress-tensor based FDFD method for computing Casimir forces. Based on [Virtual photons in imaginary time: Computing exact Casimir forces via standard numerical-electromagnetism techniques](https://arxiv.org/abs/0705.3661).
 
+## Usage
+To use, install the program via `cargo install casimir-fdfd`. Alternatively, you can build it yourself via the source
+code. To run, pass it the path to a configuration file. Examples of configurations can be found in
+[/worlds/](https://github.com/ThomasdenH/casimir-fdfd/tree/master/worlds). To display a progress bar while running, use
+the flag `--progressbar`/`-p`. You can always run `casimir-fdfd --help` for usage information.
+
+Example usage:
+
+`casimir-fdfd "worlds/plates_medium.json" -p`
 
 ## License
 MIT License
 
-Copyright (c) [year] [fullname]
+Copyright (c) 2018 Thomas den Hollander
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
