@@ -2,20 +2,24 @@
   "size": [40, 40, 40],
   "objects": [
     {
-      "type": "box",
-      "p0": [2, 2, 2],
-      "p1": [17, 17, 3]
+      "Box": {
+        "p0": [2, 2, 2],
+        "p1": [16, 16, 3],
+        "material": "gold"
+      }
     },
     {
-      "type": "sphere",
-      "point": [9, 9, 13],
-      "radius": 7
+      "Sphere": {
+        "point": [9, 9, 13],
+        "radius": 7,
+        "material": "gold"
+      }
     }
   ],
   "simulation_config": {
-    "frequency_threshold": 0.01,
+    "frequency_threshold": 0.005,
     "fdfd_convergence": 0.000001,
-    "cosine_cutoff": 0.001,
-    "frequency_range": [0.01, 1.0]
+    "cosine_cutoff": 0.005,
+    "frequency_range": [0.025, 1.0]
   }
 }
