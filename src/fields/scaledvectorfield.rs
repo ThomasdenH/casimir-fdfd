@@ -87,6 +87,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_mul_f32_vector_field_ref() {
+        let size = Vector3::new(4, 5, 4);
+        let field_a = VectorField::new(size);
+        let scaled: ScaledVectorField = 3.0 * &field_a;
+        assert_eq!(scaled.size(), size);
+        assert_eq!(scaled.len(), field_a.len());
+    }
+
+    #[test]
     fn test_sub_assign_scaled_vector_field() {
         let mut field_a: VectorField = VectorField::new(Vector3::new(2, 2, 1));
         field_a[(0, 0, 0)] = Vector3::repeat(1.0);
@@ -106,6 +115,15 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn test_sub_assign_scaled_vector_field_different_sizes() {
+        let mut field_a: VectorField = VectorField::new(Vector3::new(2, 2, 1));
+        let field_b = VectorField::new(Vector3::new(1, 2, 1));
+        let scaled_field_b: ScaledVectorField = -2.0 * &field_b;
+        field_a -= &scaled_field_b;
+    }
+
+    #[test]
     fn test_add_assign_scaled_vector_field() {
         let mut field_a: VectorField = VectorField::new(Vector3::new(2, 2, 1));
         field_a[(0, 0, 0)] = Vector3::repeat(1.0);
@@ -122,5 +140,14 @@ mod tests {
         assert!((field_a[(1usize, 0, 0)] - Vector3::repeat(6.0)).norm() < 1e-10);
         assert!((field_a[(0usize, 1, 0)] - Vector3::repeat(9.0)).norm() < 1e-10);
         assert!((field_a[(1usize, 1, 0)] - Vector3::repeat(12.0)).norm() < 1e-10);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_add_assign_scaled_vector_field_different_sizes() {
+        let mut field_a: VectorField = VectorField::new(Vector3::new(2, 2, 1));
+        let field_b = VectorField::new(Vector3::new(1, 2, 1));
+        let scaled_field_b: ScaledVectorField = -2.0 * &field_b;
+        field_a += &scaled_field_b;
     }
 }

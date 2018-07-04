@@ -306,6 +306,7 @@ impl<'a> SubAssign<&'a VectorField> for VectorField {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::f32::consts::PI;
 
     #[test]
     fn neg_vector_field() {
@@ -400,5 +401,177 @@ mod tests {
         assert!((result[(1usize, 0, 0)] - Vector3::repeat(6.0)).norm() < 1e-10);
         assert!((result[(0usize, 1, 0)] - Vector3::repeat(12.0)).norm() < 1e-10);
         assert!((result[(1usize, 1, 0)] - Vector3::repeat(20.0)).norm() < 1e-10);
+    }
+
+    #[test]
+    fn zero_curl_field() {
+        let mut field = VectorField::new(Vector3::new(5, 5, 5));
+        for vector in field.vectors_mut().iter_mut() {
+            *vector = Vector3::new(3.0, 9.0, 1.0);
+        }
+        // Remove mutability
+        let field = field;
+
+        // Negative curl
+        for vector in field.curl_negative().vectors().iter() {
+            assert_approx_eq!(vector.norm(), 0.0, 1e-10);
+        }
+
+        // Positive curl
+        for vector in field.curl_positive().vectors().iter() {
+            assert_approx_eq!(vector.norm(), 0.0, 1e-10);
+        }
+
+        // Negative curl to
+        let negative_curl = field.curl_negative_to(field.clone());
+        for vector in negative_curl.vectors().iter() {
+            assert_approx_eq!(vector.norm(), 0.0, 1e-10);
+        }
+
+        // Negative curl to
+        let positive_curl = field.curl_positive_to(field.clone());
+        for vector in positive_curl.vectors().iter() {
+            assert_approx_eq!(vector.norm(), 0.0, 1e-10);
+        }
+    }
+
+    #[test]
+    fn constant_curl_field() {
+        // Create a circling vector field
+        let mut field = VectorField::new(Vector3::new(10, 10, 10));
+        for x in 0..10 {
+            for y in 0..10 {
+                for z in 0..10 {
+                    field[(x, y, z)] = Vector3::new(
+                        (y as f32) - 5.0,
+                        5.0 - (x as f32),
+                        0.0
+                    );
+                }
+            }
+        }
+
+        // Compute the result
+        let negative_curl = field.curl_negative();
+        let positive_curl = field.curl_positive();
+        let negative_curl_to = field.curl_negative_to(field.clone());
+        let positive_curl_to = field.curl_positive_to(field.clone());
+
+        let expected = Vector3::new(0.0, 0.0, -2.0);
+        let error = Vector3::repeat(1e-5);
+        // Because of boundary conditions, avoid edges
+        for x in 1usize..9 {
+            for y in 1usize..9 {
+                for z in 0usize..10 {
+                    assert_approx_eq!(negative_curl[(x, y, z)], expected, error);
+                    assert_approx_eq!(positive_curl[(x, y, z)], expected, error);
+                    assert_approx_eq!(negative_curl_to[(x, y, z)], expected, error);
+                    assert_approx_eq!(positive_curl_to[(x, y, z)], expected, error);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn custom_curl_field_1() {
+        // Create a circling vector field
+        let mut field = VectorField::new(Vector3::new(10, 10, 10));
+        for x in 0..10 {
+            for y in 0..10 {
+                for z in 0..10 {
+                    field[(x, y, z)] = Vector3::new(
+                        0.0,
+                        -((x as f32) - 5.0).powi(2),
+                        0.0
+                    );
+                }
+            }
+        }
+
+        // Compute the result
+        let negative_curl = field.curl_negative();
+        let positive_curl = field.curl_positive();
+        let negative_curl_to = field.curl_negative_to(field.clone());
+        let positive_curl_to = field.curl_positive_to(field.clone());
+
+        // Error can be quite large
+        let error = Vector3::repeat(1.5);
+        // Because of boundary conditions, avoid edges
+        for x in 1usize..9 {
+            for y in 1usize..9 {
+                for z in 0usize..10 {
+                    let expected = Vector3::new(0.0, 0.0, -2.0 * ((x as f32) - 5.0));
+                    assert_approx_eq!(negative_curl[(x, y, z)], expected, error);
+                    assert_approx_eq!(positive_curl[(x, y, z)], expected, error);
+                    assert_approx_eq!(negative_curl_to[(x, y, z)], expected, error);
+                    assert_approx_eq!(positive_curl_to[(x, y, z)], expected, error);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn custom_curl_field_2() {
+        // Create a circling vector field
+        let mut field = VectorField::new(Vector3::new(10, 10, 10));
+        for x in 0..10 {
+            for y in 0..10 {
+                for z in 0..10 {
+                    field[(x, y, z)] = Vector3::new(
+                        (x as f32 / 40.0 / PI).sin(),
+                        (z as f32 / 40.0 / PI).cos(),
+                        -(y as f32 / 40.0 / PI).cos()
+                    );
+                }
+            }
+        }
+
+        // Compute the result
+        let negative_curl = field.curl_negative();
+        let positive_curl = field.curl_positive();
+        let negative_curl_to = field.curl_negative_to(field.clone());
+        let positive_curl_to = field.curl_positive_to(field.clone());
+
+        // Error can be quite large
+        let error = Vector3::repeat(1e-2);
+        // Because of boundary conditions, avoid edges
+        for x in 1usize..9 {
+            for y in 1usize..9 {
+                for z in 0usize..10 {
+                    let expected = Vector3::new(
+                        (z as f32 / 40.0 / PI).sin() * (y as f32 / 40.0 / PI).sin() / 80.0 / PI,
+                        0.0,
+                        0.0
+                    );
+                    assert_approx_eq!(negative_curl[(x, y, z)], expected, error);
+                    assert_approx_eq!(positive_curl[(x, y, z)], expected, error);
+                    assert_approx_eq!(negative_curl_to[(x, y, z)], expected, error);
+                    assert_approx_eq!(positive_curl_to[(x, y, z)], expected, error);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn index() {
+        let mut field = VectorField::new(Vector3::new(4, 3, 2));
+        let error = Vector3::repeat(1e-10);
+
+        // Check mutability and indexing in both formats
+        let vec_a = Vector3::repeat(5.0);
+        field[(0usize, 0, 0)] = vec_a;
+        assert_approx_eq!(field[Point3::new(0usize, 0, 0)], vec_a, error);
+
+        let vec_b = Vector3::repeat(3.0);
+        field[Point3::new(1usize, 0, 0)] = vec_b;
+        assert_approx_eq!(field[(1usize, 0, 0)], vec_b, error);
+
+        // Check boundary conditions (should repeat outside domain)
+        assert_approx_eq!(field[Point3::new(-3isize, 0, 0)], field[Point3::new(1isize, 0, 0)], error);
+        assert_approx_eq!(field[(1000isize, 1000, 10)], field[(0usize, 1, 0)], error);
+
+        // Check coordinate conversion
+        assert_approx_eq!(field[0], field[(0usize, 0, 0)], error);
+        assert_approx_eq!(field[17], field[(1usize, 1, 1)], error);
     }
 }

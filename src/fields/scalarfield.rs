@@ -234,6 +234,14 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn add_scalar_field_scalar_field_different_sizes() {
+        let field1 = 3.0 * ScalarField::ones(Vector3::new(4, 3, 2));
+        let field2 = 1.5 * ScalarField::ones(Vector3::new(2, 3, 4));
+        let _ = field1 + &field2;
+    }
+
+    #[test]
     fn sub_scalar_field_scalar_field() {
         let size = Vector3::new(4, 3, 4);
         let field1 = 3.0 * ScalarField::ones(size);
@@ -241,6 +249,14 @@ mod tests {
         for value in (field1 - &field2).scalars().iter() {
             assert_approx_eq!(value, -1.0, 1e-10);
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn sub_scalar_field_scalar_field_different_sizes() {
+        let field1 = 3.0 * ScalarField::ones(Vector3::new(4, 3, 2));
+        let field2 = 1.5 * ScalarField::ones(Vector3::new(2, 3, 4));
+        let _ = field1 - &field2;
     }
 
     #[test]
@@ -255,6 +271,14 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn add_assign_scalar_field_scalar_field_different_sizes() {
+        let mut field1 = 3.0 * ScalarField::ones(Vector3::new(4, 3, 2));
+        let field2 = 1.5 * ScalarField::ones(Vector3::new(2, 3, 4));
+        field1 += &field2;
+    }
+
+    #[test]
     fn sub_assign_scalar_field_scalar_field() {
         let size = Vector3::new(4, 3, 4);
         let mut field1 = 3.0 * ScalarField::ones(size);
@@ -263,5 +287,33 @@ mod tests {
         for value in field1.scalars().iter() {
             assert_approx_eq!(value, -1.0, 1e-10);
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn sub_assign_scalar_field_scalar_field_different_sizes() {
+        let mut field1 = 3.0 * ScalarField::ones(Vector3::new(4, 3, 2));
+        let field2 = 1.5 * ScalarField::ones(Vector3::new(2, 3, 4));
+        field1 -= &field2;
+    }
+
+    #[test]
+    fn index() {
+        let mut field = 3.0 * ScalarField::ones(Vector3::new(4, 3, 2));
+
+        // Check mutability and indexing in both formats
+        field[(0usize, 0, 0)] = 5.0;
+        assert_approx_eq!(field[Point3::new(0usize, 0, 0)], 5.0, 1e-10);
+
+        field[Point3::new(1usize, 0, 0)] = 2.5;
+        assert_approx_eq!(field[(1usize, 0, 0)], 2.5, 1e-10);
+
+        // Check boundary conditions (should be 1.0 outsize domain)
+        assert_approx_eq!(field[Point3::new(-3isize, 0, 0)], 1.0, 1e-10);
+        assert_approx_eq!(field[(1000isize, 1000, 10)], 1.0, 1e-10);
+
+        // Check coordinate conversion
+        assert_approx_eq!(field[0], field[(0usize, 0, 0)], 1e-10);
+        assert_approx_eq!(field[17], field[(1usize, 1, 1)], 1e-10);
     }
 }
