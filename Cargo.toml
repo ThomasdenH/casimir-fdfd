@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Thomas <denhollander.thomas@gmail.com>"]
 description = "An implementation of a stress-tensor based FDFD method for computing Casimir forces"
 license = "MIT"
-documentation = "https://docs.rs/casimir-fdfd/"
+documentation = "https://docs.rs/crate/casimir-fdfd/"
 repository = "https://github.com/ThomasdenH/casimir-fdfd/"
 
 [dependencies]
