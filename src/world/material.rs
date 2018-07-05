@@ -122,3 +122,59 @@ where
 
     deserializer.deserialize_any(StringOrStruct(PhantomData))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::from_str;
+
+    #[test]
+    fn parse() {
+        let material: DrudeMaterial = "gold".parse().unwrap();
+        assert_approx_eq!(material.omega_p, 7.79, 1e-10);
+        assert_approx_eq!(material.omega_tau, 48.8, 1e-10);
+        assert_approx_eq!(material.step, 0.1, 1e-10);
+        assert_approx_eq!(material.precision, 0.001, 1e-10);
+    }
+
+    #[test]
+    fn parse_invalid() {
+        let error: UnknownDrudeMaterialError = "copper".parse::<DrudeMaterial>().err().unwrap();
+        assert_eq!(error.name, "copper");
+    }
+
+    #[test]
+    fn custom_serde() {
+        let material: DrudeMaterial = from_str(r#"{
+            "omega_p": 7.79,
+            "omega_tau": 48.8,
+            "step": 0.1,
+            "precision": 0.001
+        }"#).unwrap();
+    }
+
+    #[test]
+    fn gold_permittivity() {
+        let gold: DrudeMaterial = "gold".parse().unwrap();
+        assert_approx_eq!(gold.permittivity(0.1), 17.364246, 1e-10);
+        assert_approx_eq!(gold.permittivity(0.2), 8.131477, 1e-10);
+        assert_approx_eq!(gold.permittivity(0.3), 5.509191, 1e-10);
+        assert_approx_eq!(gold.permittivity(0.4), 4.2805657, 1e-10);
+        assert_approx_eq!(gold.permittivity(0.5), 3.5698092, 1e-10);
+    }
+
+    #[test]
+    fn custom_permittivity() {
+        let gold = DrudeMaterial {
+            omega_p: 3.0,
+            omega_tau: 30.0,
+            step: 0.1,
+            precision: 0.001,
+        };
+        assert_approx_eq!(gold.permittivity(0.1), 4.930006, 0.001);
+        assert_approx_eq!(gold.permittivity(0.2), 2.7026372, 0.001);
+        assert_approx_eq!(gold.permittivity(0.3), 2.0700483, 0.001);
+        assert_approx_eq!(gold.permittivity(0.4), 1.7736864, 0.001);
+        assert_approx_eq!(gold.permittivity(0.5), 1.6022651, 0.001);
+    }
+}
