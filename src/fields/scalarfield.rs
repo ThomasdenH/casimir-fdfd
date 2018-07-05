@@ -1,6 +1,7 @@
 use nalgebra::*;
 use std::ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign};
 
+/// On a grid of a certain size, a scalar is located on every coordinate.
 #[derive(PartialEq, Clone, Debug)]
 pub struct ScalarField {
     size: Vector3<usize>,
@@ -21,14 +22,17 @@ impl ScalarField {
         self.scalars = self.scalars.map(|a| 1.0 / a);
     }
 
+    /// Get the three-dimensional size of this field.
     pub fn size(&self) -> Vector3<usize> {
         self.size
     }
 
+    /// Get the number of scalars in this field.
     pub fn len(&self) -> usize {
         self.scalars.len()
     }
 
+    /// Get the scalars in this field.
     pub fn scalars(&self) -> &DVector<f32> {
         &self.scalars
     }

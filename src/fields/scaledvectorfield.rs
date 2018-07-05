@@ -11,16 +11,14 @@ pub struct ScaledVectorField<'a> {
 }
 
 impl<'a> ScaledVectorField<'a> {
+    /// Get the size of this field.
     pub fn size(&self) -> Vector3<usize> {
         self.field.size()
     }
 
+    /// Get the number of vectors in this field.
     pub fn len(&self) -> usize {
         self.field.len()
-    }
-
-    pub fn field(&self) -> &VectorField {
-        self.field
     }
 }
 
@@ -51,7 +49,7 @@ impl<'a, 'b> AddAssign<&'b ScaledVectorField<'a>> for VectorField {
         debug_assert!(self.size() == other.size());
         for (self_element, other_element) in self.vectors_mut()
             .iter_mut()
-            .zip(other.field().vectors().iter())
+            .zip(other.field.vectors().iter())
         {
             *self_element += other.scalar * other_element
         }
@@ -63,7 +61,7 @@ impl<'a, 'b> SubAssign<&'b ScaledVectorField<'a>> for VectorField {
         debug_assert!(self.size() == other.size());
         for (self_element, other_element) in self.vectors_mut()
             .iter_mut()
-            .zip(other.field().vectors().iter())
+            .zip(other.field.vectors().iter())
         {
             *self_element -= other.scalar * other_element
         }

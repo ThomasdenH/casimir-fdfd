@@ -1,3 +1,8 @@
+#![warn(missing_docs)]
+
+//! `casimir-fdfd` is an implementation of a stress-tensor based FDFD method for computing Casimir
+//! forces. Based on [Virtual photons in imaginary time: Computing exact Casimir forces via standard numerical-electromagnetism techniques](https://arxiv.org/abs/0705.3661).
+
 #[macro_use]
 extern crate failure;
 extern crate nalgebra;
@@ -12,9 +17,13 @@ extern crate serde;
 #[macro_use]
 extern crate assert_approx_eq;
 
+/// Contains the simulation configuration options.
 pub mod config;
+/// Contains the fields used in the simulation.
 pub mod fields;
+/// Contains the functions to compute Green functions and stress tensors.
 pub mod greenfunctions;
+/// Geometry and materials that describe the simulated environment.
 pub mod world;
 
 use clap::{App, Arg};

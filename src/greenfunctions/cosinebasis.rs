@@ -7,17 +7,19 @@ use std::f32::consts::PI;
 use std::io::Stdout;
 use std::sync::{Arc, Mutex};
 
+/// Determines a direction in space.
 #[derive(Eq, PartialEq, Copy, Clone, Hash, Debug)]
 pub enum Direction {
-    X,
-    Y,
-    Z,
-    NegX,
-    NegY,
-    NegZ,
+    #[allow(missing_docs)] X,
+    #[allow(missing_docs)] Y,
+    #[allow(missing_docs)] Z,
+    #[allow(missing_docs)] NegX,
+    #[allow(missing_docs)] NegY,
+    #[allow(missing_docs)] NegZ,
 }
 
 impl Direction {
+    /// Converts a `Direction` to a normalized normal vector in that direction.
     fn vector(self) -> Vector3<f32> {
         match self {
             Direction::X => Vector3::new(1.0, 0.0, 0.0),
@@ -30,6 +32,8 @@ impl Direction {
     }
 }
 
+/// A `CosineBasis` can compute the casimir force for a bounding plane surface by expanding the
+/// source as a cosine basis and measuring the response.
 pub struct CosineBasis<'a> {
     p0: Point3<usize>,
     p1: Point3<usize>,
@@ -61,6 +65,8 @@ impl<'a> CosineBasis<'a> {
         }
     }
 
+    /// If this method is called with a progress bar, that progress bar will be updated as the force
+    /// is computed. If it is called with `None`, no progress bar will be used.
     pub fn with_progress_bar(
         mut self,
         progress_bar: Option<Arc<Mutex<ProgressBar<Stdout>>>>,
@@ -69,6 +75,7 @@ impl<'a> CosineBasis<'a> {
         self
     }
 
+    /// Compute the force due to this basis.
     pub fn force(&self) -> Vector3<f32> {
         let (amax, bmax) = match self.normal {
             Direction::X | Direction::NegX => (self.p1.y - self.p0.y, self.p1.z - self.p0.z),
@@ -109,6 +116,8 @@ impl<'a> CosineBasis<'a> {
         total_force
     }
 
+    /// Generate a cosine basis source. `na` and `nb` determine the number of the expansion, and
+    /// the `polarization` determines the component to set the source to.
     fn get_source(&self, na: usize, nb: usize, polarization: Direction) -> VectorField {
         let mut source_field = VectorField::new(self.permitivity.size());
         match self.normal {
@@ -152,10 +161,14 @@ impl<'a> CosineBasis<'a> {
         source_field
     }
 
+    /// Computes the force for a particular basis by multiplying the stress tensor with the Green
+    /// tensor.
     pub fn force_for_basis(&self, na: usize, nb: usize) -> Vector3<f32> {
         self.stress_tensor(na, nb) * self.normal.vector()
     }
 
+    /// Computes the stress tensor. When multiplied with a surface normal vector, this gives the
+    /// force between both sides of that surface.
     pub fn stress_tensor(&self, na: usize, nb: usize) -> Matrix3<f32> {
         let electric_tensor = self.green_tensor(na, nb, OperatorType::Electric);
         let magnetic_tensor = self.green_tensor(na, nb, OperatorType::Magnetic);
@@ -165,6 +178,8 @@ impl<'a> CosineBasis<'a> {
                 * (electric_tensor - Matrix3::from_diagonal_element(0.5) * electric_tensor.trace()))
     }
 
+    /// Computes the Green tensor, which has as columns the Green functions for different
+    /// polarizations.
     pub fn green_tensor(&self, na: usize, nb: usize, operator_type: OperatorType) -> Matrix3<f32> {
         Matrix3::from_columns(&[
             self.green_function(&self.get_source(na, nb, Direction::X), operator_type),
@@ -173,6 +188,9 @@ impl<'a> CosineBasis<'a> {
         ])
     }
 
+    /// Performs operator inversion using the conjugate gradient method to obtain the Green
+    /// functions due to the incoming `source`. The `operator_type` determines the type of operator
+    /// to use and thereby the type of Green function to compute.
     pub fn green_function(
         &self,
         source: &VectorField,

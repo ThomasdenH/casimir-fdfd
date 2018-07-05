@@ -3,6 +3,7 @@ use std::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub, SubAssign};
 
 use fields::ScalarField;
 
+/// Represents a vector field. It has a certain size, with a vector on every coordinate on the grid.
 #[derive(PartialEq, Clone, Debug)]
 pub struct VectorField {
     size: Vector3<usize>,
@@ -10,6 +11,7 @@ pub struct VectorField {
 }
 
 impl VectorField {
+    /// Create a new `VectorField` filled with (0, 0, 0) with a certain `size`.
     pub fn new(size: Vector3<usize>) -> VectorField {
         VectorField {
             size,
@@ -42,6 +44,7 @@ impl VectorField {
         }
     }
 
+    /// Same as `curl_positive`, but uses no allocations and recycles a `VectorField` instead.
     pub fn curl_positive_to(&self, mut to: VectorField) -> VectorField {
         debug_assert!(self.size() == to.size());
         for x in 0..self.size.x as isize {
@@ -61,6 +64,8 @@ impl VectorField {
         to
     }
 
+    /// Calculates the negative curl of a vector field. The new positions will be the centers of the
+    /// Yee grid planes formed between four grid edges.
     pub fn curl_negative(&self) -> VectorField {
         VectorField {
             size: self.size,
@@ -84,6 +89,7 @@ impl VectorField {
         }
     }
 
+    /// Same as `curl_negative`, but uses no allocations and recycles a `VectorField` instead.
     pub fn curl_negative_to(&self, mut to: VectorField) -> VectorField {
         debug_assert!(self.size() == to.size());
         for x in 0..self.size.x as isize {
@@ -103,14 +109,17 @@ impl VectorField {
         to
     }
 
+    /// Returns the size in three dimensions of this field.
     pub fn size(&self) -> Vector3<usize> {
         self.size
     }
 
+    /// Returns the number of vectors in this field.
     pub fn len(&self) -> usize {
         self.vectors.len()
     }
 
+    /// Clone the components of this vector field to the vector field `other`.
     pub fn clone_to(&self, mut other: VectorField) -> VectorField {
         debug_assert!(self.size() == other.size());
         for i in 0..self.vectors.len() {
@@ -119,10 +128,12 @@ impl VectorField {
         other
     }
 
+    /// Returns the vectors in this field in an immutable way.
     pub fn vectors(&self) -> &DVector<Vector3<f32>> {
         &self.vectors
     }
 
+    /// Returns the vectors inside this field in a mutable way.
     pub fn vectors_mut(&mut self) -> &mut DVector<Vector3<f32>> {
         &mut self.vectors
     }

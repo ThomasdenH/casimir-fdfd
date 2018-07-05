@@ -49,11 +49,23 @@ impl<'a> Iterator for ForceIterator<'a> {
 /// These errors can be thrown when validating a world.
 #[derive(Debug, Fail)]
 pub enum WorldError {
+    /// An error indicating that one of the shapes is too close too the edge, causing the bounding
+    /// box to cross the boundary.
     #[fail(display = "shape {} too close to edge", index)]
-    ShapeTooCloseToEdge { index: usize },
+    ShapeTooCloseToEdge {
+        /// The index of the violating object.
+        index: usize
+    },
 
+    /// An error indicating that the bounding boxes of two objects in this world intersect and
+    /// and therefore this world is invalid.
     #[fail(display = "bounding boxes of shapes {} and {} intersect", index_1, index_2)]
-    ShapesIntersect { index_1: usize, index_2: usize },
+    ShapesIntersect {
+        /// The index of the first object intersecting with the second.
+        index_1: usize,
+        /// The index of the second object intersecting with the first.
+        index_2: usize
+    },
 }
 
 impl World {
@@ -141,6 +153,9 @@ impl World {
         Ok(())
     }
 
+    /// Performs a recursive integration between two frequencies. If the difference between the
+    /// midpoint force and the linear interpolation is too large, both sides of the domain will use
+    /// this function recursively to integrate the force.
     pub fn integrate_force_between_frequencies(
         &self,
         i: usize,
@@ -181,6 +196,8 @@ impl World {
         }
     }
 
+    /// Compute the force on object `i` for a certain `frequency`. This method will also subtract
+    /// the error forces due to quantization by subtracting the force due to single objects.
     fn force_on_for_freq(&self, i: usize, frequency: f32) -> Vector3<f32> {
         // Progress bar
         let bbox = &self.objects[i].bbox();

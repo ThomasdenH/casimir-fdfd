@@ -47,12 +47,14 @@ impl fmt::Display for Shape {
 impl Shape {
     /// Create a new box, with the lowest coordinates in `p0`, and the highest coordinates in `p1`.
     /// `material` is the material to use for this object.
+    #[cfg(test)]
     pub fn new_box(p0: Point3<usize>, p1: Point3<usize>, material: DrudeMaterial) -> Shape {
         Shape::Box { p0, p1, material }
     }
 
     /// Create a new sphere, centered at `point` and with a `radius`. `material` is the material to
     /// use for this object.
+    #[cfg(test)]
     pub fn new_sphere(point: Point3<usize>, radius: f32, material: DrudeMaterial) -> Shape {
         Shape::Sphere {
             point,

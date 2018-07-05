@@ -145,7 +145,7 @@ mod tests {
 
     #[test]
     fn custom_serde() {
-        let material: DrudeMaterial = from_str(r#"{
+        let _: DrudeMaterial = from_str(r#"{
             "omega_p": 7.79,
             "omega_tau": 48.8,
             "step": 0.1,
