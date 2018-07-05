@@ -1,6 +1,6 @@
 [package]
 name = "casimir-fdfd"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Thomas <denhollander.thomas@gmail.com>"]
 description = "An implementation of a stress-tensor based FDFD method for computing Casimir forces"
 license = "MIT"
