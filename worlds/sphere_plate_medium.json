@@ -1,5 +1,5 @@
 {
-  "size": [40, 40, 40],
+  "size": [50, 50, 50],
   "objects": [
     {
       "Box": {
@@ -10,7 +10,7 @@
     },
     {
       "Sphere": {
-        "point": [9, 9, 13],
+        "point": [9, 9, 15],
         "radius": 7,
         "material": "gold"
       }
@@ -20,6 +20,6 @@
     "frequency_threshold": 0.005,
     "fdfd_convergence": 0.000001,
     "cosine_cutoff": 0.005,
-    "frequency_range": [0.025, 1.0]
+    "frequency_range": [0.02, 1.0]
   }
 }
