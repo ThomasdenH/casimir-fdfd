@@ -17,7 +17,7 @@ serde = "1.0.89"
 clap = "2.31.2"
 
 [dependencies.nalgebra]
-version = "0.15.1"
+version = "0.17.3"
 features = ["serde-serialize"]
 
 [dev-dependencies]
