@@ -3,7 +3,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/ThomasdenH/casimir-fdfd/badge.svg?branch=master)](https://coveralls.io/github/ThomasdenH/casimir-fdfd?branch=master)
 
 # casimir-fdfd
-An implementation of a stress-tensor based FDFD method for computing Casimir forces. This program was created for my bachelor thesis. The corresponding report, which includes relevant theory and results, can be read [here](https://bitbucket.org/thomasdh/casimir-report/raw/master/Intersecting%20Discs.pdf). The program is largely based on [Virtual photons in imaginary time: Computing exact Casimir forces via standard numerical-electromagnetism techniques](https://arxiv.org/abs/0705.3661).
+An implementation of a stress-tensor based FDFD method for computing Casimir forces. This program was created for my bachelor thesis. The corresponding report, which includes relevant theory and results, can be read [here](https://gitlab.com/denhollander-thomas/casimir-report/-/jobs/artifacts/master/raw/Intersecting%20Discs.pdf?job=compile_pdf). The program is largely based on [Virtual photons in imaginary time: Computing exact Casimir forces via standard numerical-electromagnetism techniques](https://arxiv.org/abs/0705.3661).
 
 ## Usage
 To use, install the program via `cargo install casimir-fdfd`. Alternatively, you can build it yourself via the source
