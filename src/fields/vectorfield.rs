@@ -564,54 +564,6 @@ mod tests {
     }
 
     #[test]
-    fn custom_curl_field_3() {
-        // Create a circling vector field
-        let mut field = VectorField::new(Vector3::new(10, 10, 10));
-        for x in 0..10 {
-            for y in 0..10 {
-                for z in 0..10 {
-                    let fx = x as f32 / 10.0;
-                    let fy = y as f32 / 10.0;
-                    let fz = z as f32 / 10.0;
-                    field[(x, y, z)] = Vector3::new(
-                        fx * fx * fy * fz,
-                        - fx * fy * fy * fz,
-                        fx * fy * fy * fz * fz
-                    );
-                }
-            }
-        }
-
-        // Compute the result
-        let negative_curl = field.curl_negative();
-        let positive_curl = field.curl_positive();
-        let negative_curl_to = field.curl_negative_to(field.clone());
-        let positive_curl_to = field.curl_positive_to(field.clone());
-
-        // Error can be quite large
-        let error = Vector3::repeat(1e-1);
-        // Because of boundary conditions, avoid edges
-        for x in 1usize..9 {
-            for y in 1usize..9 {
-                for z in 0usize..10 {
-                    let fx = x as f32 / 10.0;
-                    let fy = y as f32 / 10.0;
-                    let fz = z as f32 / 10.0;
-                    let expected = Vector3::new(
-                        fx * fy * (2.0 * fz * fz + fy),
-                        fy * fy * (fx * fx - fz * fz),
-                        - fy * fz * (fy + fx * fx)
-                    );
-                    assert_approx_eq!(negative_curl[(x, y, z)], expected, error);
-                    assert_approx_eq!(positive_curl[(x, y, z)], expected, error);
-                    assert_approx_eq!(negative_curl_to[(x, y, z)], expected, error);
-                    assert_approx_eq!(positive_curl_to[(x, y, z)], expected, error);
-                }
-            }
-        }
-    }
-
-    #[test]
     fn index() {
         let mut field = VectorField::new(Vector3::new(4, 3, 2));
         let error = Vector3::repeat(1e-10);
