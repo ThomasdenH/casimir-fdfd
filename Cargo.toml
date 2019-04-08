@@ -14,7 +14,7 @@ serde_json = "1.0"
 failure = "0.1.1"
 serde_derive = "1.0.90"
 serde = "1.0.90"
-clap = "2.31.2"
+clap = "2.33.0"
 
 [dependencies.nalgebra]
 version = "0.15.1"
