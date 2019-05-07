@@ -30,7 +30,7 @@ use clap::{App, Arg};
 use failure::Error;
 use std::fs::File;
 use std::path::Path;
-use world::World;
+use crate::world::World;
 
 fn main() -> Result<(), Error> {
     let matches = App::new("casimir-fdfd")

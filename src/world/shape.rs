@@ -1,9 +1,9 @@
-use fields::ScalarField;
+use crate::fields::ScalarField;
 use nalgebra::*;
 use std::fmt;
-use world;
-use world::boundingbox::BoundingBox;
-use world::material::{DrudeMaterial, Material};
+use crate::world;
+use crate::world::boundingbox::BoundingBox;
+use crate::world::material::{DrudeMaterial, Material};
 
 /// A `Shape` represents geometry in space. It can be drawn to a permittivity field using
 #[derive(PartialEq, Copy, Clone, Debug, Deserialize)]
@@ -125,7 +125,7 @@ impl Shape {
 #[cfg(test)]
 mod tests {
     use nalgebra::Point3;
-    use world::shape::Shape;
+    use crate::world::shape::Shape;
 
     #[test]
     fn test_sphere_bbox_integer_radius() {

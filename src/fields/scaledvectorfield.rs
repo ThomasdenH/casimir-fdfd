@@ -1,4 +1,4 @@
-use fields::VectorField;
+use crate::fields::VectorField;
 use nalgebra::*;
 use std::ops::{AddAssign, Mul, SubAssign};
 

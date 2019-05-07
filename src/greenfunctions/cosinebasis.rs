@@ -1,6 +1,6 @@
-use config::SimulationConfig;
-use fields::{ScalarField, VectorField};
-use greenfunctions::operator::{Operator, OperatorType};
+use crate::config::SimulationConfig;
+use crate::fields::{ScalarField, VectorField};
+use crate::greenfunctions::operator::{Operator, OperatorType};
 use nalgebra::*;
 use pbr::ProgressBar;
 use std::f32::consts::PI;

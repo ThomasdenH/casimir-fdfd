@@ -2,16 +2,16 @@ mod boundingbox;
 mod material;
 mod shape;
 
-use config::SimulationConfig;
-use fields::ScalarField;
-use greenfunctions::cosinebasis::{CosineBasis, Direction};
+use crate::config::SimulationConfig;
+use crate::fields::ScalarField;
+use crate::greenfunctions::cosinebasis::{CosineBasis, Direction};
 use nalgebra::*;
 use pbr::ProgressBar;
 use rayon::iter::*;
 use std::io::Stdout;
 use std::sync::{Arc, Mutex};
-use world::boundingbox::BoundingBox;
-use world::shape::Shape;
+use crate::world::boundingbox::BoundingBox;
+use crate::world::shape::Shape;
 
 /// A struct representing the world.
 #[derive(PartialEq, Clone, Debug, Deserialize)]

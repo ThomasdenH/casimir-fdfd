@@ -176,7 +176,7 @@ impl IndexMut<usize> for ScalarField {
 
 #[cfg(test)]
 mod tests {
-    use fields::ScalarField;
+    use crate::fields::ScalarField;
     use nalgebra::*;
 
     #[test]

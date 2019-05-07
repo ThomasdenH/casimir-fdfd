@@ -1,7 +1,8 @@
 [package]
 name = "casimir-fdfd"
 version = "0.2.0"
-authors = ["Thomas <denhollander.thomas@gmail.com>"]
+authors = ["Thomas den Hollander <denhollander.thomas@gmail.com>"]
+edition = "2018"
 description = "An implementation of a stress-tensor based FDFD method for computing Casimir forces"
 license = "MIT"
 documentation = "https://docs.rs/crate/casimir-fdfd/"

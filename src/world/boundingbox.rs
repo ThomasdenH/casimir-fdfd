@@ -93,7 +93,7 @@ impl BoundingBox {
 
 #[cfg(test)]
 mod tests {
-    use world::boundingbox::BoundingBox;
+    use crate::world::boundingbox::BoundingBox;
 
     #[test]
     fn test_inside() {

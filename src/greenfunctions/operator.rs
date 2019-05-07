@@ -1,4 +1,4 @@
-use fields::{ScalarField, VectorField};
+use crate::fields::{ScalarField, VectorField};
 use std::ops::Mul;
 
 /// A representation of the green function operator

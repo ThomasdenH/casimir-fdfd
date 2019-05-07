@@ -1,7 +1,7 @@
 use nalgebra::*;
 use std::ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Sub, SubAssign};
 
-use fields::ScalarField;
+use crate::fields::ScalarField;
 
 /// Represents a vector field. It has a certain size, with a vector on every coordinate on the grid.
 #[derive(PartialEq, Clone, Debug)]
