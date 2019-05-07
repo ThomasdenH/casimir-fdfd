@@ -20,6 +20,11 @@ impl<'a> ScaledVectorField<'a> {
     pub fn len(&self) -> usize {
         self.field.len()
     }
+
+    /// Returns true if there are no vectors in this field.
+    pub fn is_empty(&self) -> bool {
+        self.field.is_empty()
+    }
 }
 
 impl<'a> Mul<f32> for &'a VectorField {
@@ -47,7 +52,8 @@ impl<'a> Mul<&'a VectorField> for f32 {
 impl<'a, 'b> AddAssign<&'b ScaledVectorField<'a>> for VectorField {
     fn add_assign(&mut self, other: &'b ScaledVectorField) {
         debug_assert!(self.size() == other.size());
-        for (self_element, other_element) in self.vectors_mut()
+        for (self_element, other_element) in self
+            .vectors_mut()
             .iter_mut()
             .zip(other.field.vectors().iter())
         {
@@ -59,7 +65,8 @@ impl<'a, 'b> AddAssign<&'b ScaledVectorField<'a>> for VectorField {
 impl<'a, 'b> SubAssign<&'b ScaledVectorField<'a>> for VectorField {
     fn sub_assign(&mut self, other: &'b ScaledVectorField) {
         debug_assert!(self.size() == other.size());
-        for (self_element, other_element) in self.vectors_mut()
+        for (self_element, other_element) in self
+            .vectors_mut()
             .iter_mut()
             .zip(other.field.vectors().iter())
         {

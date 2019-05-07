@@ -67,7 +67,8 @@ impl Material for DrudeMaterial {
             let omega = i as f32 * self.step;
             let added = (self.omega_p * self.omega_p * self.omega_tau)
                 / (omega * omega + self.omega_tau * self.omega_tau)
-                / (omega * omega + freq * freq) * self.step;
+                / (omega * omega + freq * freq)
+                * self.step;
             total += added;
             if added < self.precision {
                 break;
@@ -145,12 +146,15 @@ mod tests {
 
     #[test]
     fn custom_serde() {
-        let _: DrudeMaterial = from_str(r#"{
+        let _: DrudeMaterial = from_str(
+            r#"{
             "omega_p": 7.79,
             "omega_tau": 48.8,
             "step": 0.1,
             "precision": 0.001
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
     }
 
     #[test]

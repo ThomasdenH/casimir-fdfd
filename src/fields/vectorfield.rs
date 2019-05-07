@@ -119,6 +119,11 @@ impl VectorField {
         self.vectors.len()
     }
 
+    /// Returns true if there are no vectors in this field.
+    pub fn is_empty(&self) -> bool {
+        self.vectors.is_empty()
+    }
+
     /// Clone the components of this vector field to the vector field `other`.
     pub fn clone_to(&self, mut other: VectorField) -> VectorField {
         debug_assert!(self.size() == other.size());
@@ -453,11 +458,7 @@ mod tests {
         for x in 0..10 {
             for y in 0..10 {
                 for z in 0..10 {
-                    field[(x, y, z)] = Vector3::new(
-                        (y as f32) - 5.0,
-                        5.0 - (x as f32),
-                        0.0
-                    );
+                    field[(x, y, z)] = Vector3::new((y as f32) - 5.0, 5.0 - (x as f32), 0.0);
                 }
             }
         }
@@ -490,11 +491,7 @@ mod tests {
         for x in 0..10 {
             for y in 0..10 {
                 for z in 0..10 {
-                    field[(x, y, z)] = Vector3::new(
-                        0.0,
-                        -((x as f32) - 5.0).powi(2),
-                        0.0
-                    );
+                    field[(x, y, z)] = Vector3::new(0.0, -((x as f32) - 5.0).powi(2), 0.0);
                 }
             }
         }
@@ -531,7 +528,7 @@ mod tests {
                     field[(x, y, z)] = Vector3::new(
                         (x as f32 / 40.0 / PI).sin(),
                         (z as f32 / 40.0 / PI).cos(),
-                        -(y as f32 / 40.0 / PI).cos()
+                        -(y as f32 / 40.0 / PI).cos(),
                     );
                 }
             }
@@ -552,7 +549,7 @@ mod tests {
                     let expected = Vector3::new(
                         (z as f32 / 40.0 / PI).sin() * (y as f32 / 40.0 / PI).sin() / 80.0 / PI,
                         0.0,
-                        0.0
+                        0.0,
                     );
                     assert_approx_eq!(negative_curl[(x, y, z)], expected, error);
                     assert_approx_eq!(positive_curl[(x, y, z)], expected, error);
@@ -578,7 +575,11 @@ mod tests {
         assert_approx_eq!(field[(1usize, 0, 0)], vec_b, error);
 
         // Check boundary conditions (should repeat outside domain)
-        assert_approx_eq!(field[Point3::new(-3isize, 0, 0)], field[Point3::new(1isize, 0, 0)], error);
+        assert_approx_eq!(
+            field[Point3::new(-3isize, 0, 0)],
+            field[Point3::new(1isize, 0, 0)],
+            error
+        );
         assert_approx_eq!(field[(1000isize, 1000, 10)], field[(0usize, 1, 0)], error);
 
         // Check coordinate conversion

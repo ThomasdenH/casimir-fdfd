@@ -32,6 +32,11 @@ impl ScalarField {
         self.scalars.len()
     }
 
+    /// Returns true if there are no scaalrs in this field.
+    pub fn is_empty(&self) -> bool {
+        self.scalars.is_empty()
+    }
+
     /// Get the scalars in this field.
     pub fn scalars(&self) -> &DVector<f32> {
         &self.scalars

@@ -13,7 +13,10 @@ pub struct BoundingBox {
 
 /// This error is returned when expanding the `BoundingBox` below the 0 boundary.
 #[derive(Debug, Fail)]
-#[fail(display = "expansion outside domain: {} expanded by {}", bbox, distance)]
+#[fail(
+    display = "expansion outside domain: {} expanded by {}",
+    bbox, distance
+)]
 pub struct ExpansionOutsideDomainError {
     bbox: BoundingBox,
     distance: usize,

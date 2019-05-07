@@ -50,12 +50,15 @@ mod tests {
 
     #[test]
     fn deserialize() {
-        let config: SimulationConfig = from_str(r#"{
+        let config: SimulationConfig = from_str(
+            r#"{
             "frequency_threshold": 0.1,
             "fdfd_convergence": 2.0,
             "cosine_cutoff": 1.0,
             "frequency_range": [0.1, 1.0]
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
         assert_approx_eq!(config.frequency_threshold, 0.1, 1e-10);
         assert_approx_eq!(config.fdfd_convergence, 2.0, 1e-10);
         assert_approx_eq!(config.cosine_cutoff, 1.0, 1e-10);

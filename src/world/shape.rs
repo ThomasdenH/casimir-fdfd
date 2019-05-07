@@ -108,7 +108,9 @@ impl Shape {
                                 (point.x - x) as f32,
                                 (point.y - y) as f32,
                                 (point.z - z) as f32,
-                            ).norm() <= radius
+                            )
+                            .norm()
+                                <= radius
                             {
                                 field[(x, y, z)] = permittivity;
                             }

@@ -54,17 +54,20 @@ pub enum WorldError {
     #[fail(display = "shape {} too close to edge", index)]
     ShapeTooCloseToEdge {
         /// The index of the violating object.
-        index: usize
+        index: usize,
     },
 
     /// An error indicating that the bounding boxes of two objects in this world intersect and
     /// and therefore this world is invalid.
-    #[fail(display = "bounding boxes of shapes {} and {} intersect", index_1, index_2)]
+    #[fail(
+        display = "bounding boxes of shapes {} and {} intersect",
+        index_1, index_2
+    )]
     ShapesIntersect {
         /// The index of the first object intersecting with the second.
         index_1: usize,
         /// The index of the second object intersecting with the first.
-        index_2: usize
+        index_2: usize,
     },
 }
 
@@ -123,7 +126,8 @@ impl World {
     pub fn validate(&self) -> Result<(), WorldError> {
         let bbox_world = BoundingBox::new(0, 0, 0, self.size.x, self.size.y, self.size.z);
 
-        let expanded_boxes = self.objects
+        let expanded_boxes = self
+            .objects
             .iter()
             .enumerate()
             .map(|(index, obj)| {
@@ -184,15 +188,14 @@ impl World {
                 start_value,
                 middle_value,
                 max,
+            ) + self.integrate_force_between_frequencies(
+                i,
+                middle_frequency,
+                end_frequency,
+                middle_value,
+                end_value,
+                max,
             )
-                + self.integrate_force_between_frequencies(
-                    i,
-                    middle_frequency,
-                    end_frequency,
-                    middle_value,
-                    end_value,
-                    max,
-                )
         }
     }
 
@@ -299,8 +302,9 @@ impl World {
                         Direction::X,
                     ),
                     i => panic!("Face index out of bounds: {}", i),
-                }).with_progress_bar(progress_bar.clone().map(|a| a.clone()))
-                    .force()
+                })
+                .with_progress_bar(progress_bar.clone())
+                .force()
             })
             .sum()
     }

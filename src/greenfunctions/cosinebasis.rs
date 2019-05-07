@@ -10,12 +10,18 @@ use std::sync::{Arc, Mutex};
 /// Determines a direction in space.
 #[derive(Eq, PartialEq, Copy, Clone, Hash, Debug)]
 pub enum Direction {
-    #[allow(missing_docs)] X,
-    #[allow(missing_docs)] Y,
-    #[allow(missing_docs)] Z,
-    #[allow(missing_docs)] NegX,
-    #[allow(missing_docs)] NegY,
-    #[allow(missing_docs)] NegZ,
+    #[allow(missing_docs)]
+    X,
+    #[allow(missing_docs)]
+    Y,
+    #[allow(missing_docs)]
+    Z,
+    #[allow(missing_docs)]
+    NegX,
+    #[allow(missing_docs)]
+    NegY,
+    #[allow(missing_docs)]
+    NegZ,
 }
 
 impl Direction {
