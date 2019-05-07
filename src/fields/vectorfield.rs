@@ -322,6 +322,7 @@ impl<'a> SubAssign<&'a VectorField> for VectorField {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assert_approx_eq::assert_approx_eq;
     use std::f32::consts::PI;
 
     #[test]

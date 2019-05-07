@@ -1,15 +1,8 @@
 #![warn(missing_docs)]
+#![forbid(unsafe_code)]
 
 //! `casimir-fdfd` is an implementation of a stress-tensor based FDFD method for computing Casimir
 //! forces. Based on [Virtual photons in imaginary time: Computing exact Casimir forces via standard numerical-electromagnetism techniques](https://arxiv.org/abs/0705.3661).
-
-use serde_json;
-#[macro_use]
-extern crate serde_derive;
-
-#[cfg(test)]
-#[macro_use]
-extern crate assert_approx_eq;
 
 /// Contains the simulation configuration options.
 pub mod config;
@@ -22,6 +15,7 @@ pub mod world;
 
 use crate::world::World;
 use clap::{App, Arg};
+use serde_json;
 use snafu::{ResultExt, Snafu};
 use std::fs::File;
 use std::path::Path;

@@ -10,6 +10,7 @@ use crate::world::shape::Shape;
 use nalgebra::*;
 use pbr::ProgressBar;
 use rayon::iter::*;
+use serde::Deserialize;
 use snafu::Snafu;
 use std::io::Stdout;
 use std::sync::{Arc, Mutex};

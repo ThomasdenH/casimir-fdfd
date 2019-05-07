@@ -177,6 +177,7 @@ impl IndexMut<usize> for ScalarField {
 #[cfg(test)]
 mod tests {
     use crate::fields::ScalarField;
+    use assert_approx_eq::assert_approx_eq;
     use nalgebra::*;
 
     #[test]

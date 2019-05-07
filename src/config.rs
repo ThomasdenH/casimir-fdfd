@@ -1,3 +1,4 @@
+use serde::Deserialize;
 use std::fmt;
 
 /// Contains the configuration related to the simulation itself. Generally, these settings determine
@@ -46,6 +47,7 @@ impl fmt::Display for SimulationConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assert_approx_eq::assert_approx_eq;
     use serde_json::from_str;
 
     #[test]

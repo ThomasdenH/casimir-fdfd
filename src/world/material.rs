@@ -1,4 +1,5 @@
-use serde::de::{self, Deserialize, Deserializer, MapAccess, Visitor};
+use serde::de::{self, Deserializer, MapAccess, Visitor};
+use serde::Deserialize;
 use snafu::Snafu;
 use std::f32::consts::PI;
 use std::fmt;
@@ -130,6 +131,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assert_approx_eq::assert_approx_eq;
     use serde_json::from_str;
 
     #[test]
