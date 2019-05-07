@@ -51,7 +51,7 @@ impl FromStr for DrudeMaterial {
 }
 
 impl fmt::Display for DrudeMaterial {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "Drude material: ωp: {}, ωτ: {}, step size: {}, precision: {}",
@@ -98,7 +98,7 @@ where
     {
         type Value = T;
 
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
             formatter.write_str("string or map")
         }
 

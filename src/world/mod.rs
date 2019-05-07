@@ -78,7 +78,7 @@ impl World {
     }
 
     /// Obtain a force iterator for all objects in this world.
-    pub fn forces(&self) -> ForceIterator {
+    pub fn forces(&self) -> ForceIterator<'_> {
         ForceIterator { i: 0, world: &self }
     }
 

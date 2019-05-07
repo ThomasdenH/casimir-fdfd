@@ -50,7 +50,7 @@ impl<'a> Mul<&'a VectorField> for f32 {
 }
 
 impl<'a, 'b> AddAssign<&'b ScaledVectorField<'a>> for VectorField {
-    fn add_assign(&mut self, other: &'b ScaledVectorField) {
+    fn add_assign(&mut self, other: &'b ScaledVectorField<'_>) {
         debug_assert!(self.size() == other.size());
         for (self_element, other_element) in self
             .vectors_mut()
@@ -63,7 +63,7 @@ impl<'a, 'b> AddAssign<&'b ScaledVectorField<'a>> for VectorField {
 }
 
 impl<'a, 'b> SubAssign<&'b ScaledVectorField<'a>> for VectorField {
-    fn sub_assign(&mut self, other: &'b ScaledVectorField) {
+    fn sub_assign(&mut self, other: &'b ScaledVectorField<'_>) {
         debug_assert!(self.size() == other.size());
         for (self_element, other_element) in self
             .vectors_mut()
@@ -76,13 +76,13 @@ impl<'a, 'b> SubAssign<&'b ScaledVectorField<'a>> for VectorField {
 }
 
 impl<'a> AddAssign<ScaledVectorField<'a>> for VectorField {
-    fn add_assign(&mut self, other: ScaledVectorField) {
+    fn add_assign(&mut self, other: ScaledVectorField<'_>) {
         *self += &other;
     }
 }
 
 impl<'a> SubAssign<ScaledVectorField<'a>> for VectorField {
-    fn sub_assign(&mut self, other: ScaledVectorField) {
+    fn sub_assign(&mut self, other: ScaledVectorField<'_>) {
         *self -= &other;
     }
 }
@@ -95,7 +95,7 @@ mod tests {
     fn test_mul_f32_vector_field_ref() {
         let size = Vector3::new(4, 5, 4);
         let field_a = VectorField::new(size);
-        let scaled: ScaledVectorField = 3.0 * &field_a;
+        let scaled: ScaledVectorField<'_> = 3.0 * &field_a;
         assert_eq!(scaled.size(), size);
         assert_eq!(scaled.len(), field_a.len());
     }
@@ -109,7 +109,7 @@ mod tests {
         field_a[(1, 1, 0)] = Vector3::repeat(4.0);
 
         let cloned_a = field_a.clone();
-        let field_b: ScaledVectorField = -2.0 * &cloned_a;
+        let field_b: ScaledVectorField<'_> = -2.0 * &cloned_a;
 
         field_a -= &field_b;
 
@@ -124,7 +124,7 @@ mod tests {
     fn test_sub_assign_scaled_vector_field_different_sizes() {
         let mut field_a: VectorField = VectorField::new(Vector3::new(2, 2, 1));
         let field_b = VectorField::new(Vector3::new(1, 2, 1));
-        let scaled_field_b: ScaledVectorField = -2.0 * &field_b;
+        let scaled_field_b: ScaledVectorField<'_> = -2.0 * &field_b;
         field_a -= &scaled_field_b;
     }
 
@@ -137,7 +137,7 @@ mod tests {
         field_a[(1, 1, 0)] = Vector3::repeat(4.0);
 
         let cloned_a = field_a.clone();
-        let field_b: ScaledVectorField = 2.0 * &cloned_a;
+        let field_b: ScaledVectorField<'_> = 2.0 * &cloned_a;
 
         field_a += &field_b;
 
@@ -152,7 +152,7 @@ mod tests {
     fn test_add_assign_scaled_vector_field_different_sizes() {
         let mut field_a: VectorField = VectorField::new(Vector3::new(2, 2, 1));
         let field_b = VectorField::new(Vector3::new(1, 2, 1));
-        let scaled_field_b: ScaledVectorField = -2.0 * &field_b;
+        let scaled_field_b: ScaledVectorField<'_> = -2.0 * &field_b;
         field_a += &scaled_field_b;
     }
 }

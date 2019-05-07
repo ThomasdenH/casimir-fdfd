@@ -23,7 +23,7 @@ pub enum Shape {
 }
 
 impl fmt::Display for Shape {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Shape::Box { p0, p1, material } => write!(
                 f,

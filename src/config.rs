@@ -30,7 +30,7 @@ impl Default for SimulationConfig {
 }
 
 impl fmt::Display for SimulationConfig {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Simulation configuration:")?;
         writeln!(f, "\tFrequency threshold: {}", self.frequency_threshold)?;
         writeln!(

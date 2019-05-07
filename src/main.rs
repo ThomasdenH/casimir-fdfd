@@ -5,14 +5,14 @@
 
 #[macro_use]
 extern crate failure;
-extern crate nalgebra;
-extern crate pbr;
-extern crate rayon;
-extern crate serde_json;
+
+
+
+use serde_json;
 #[macro_use]
 extern crate serde_derive;
-extern crate clap;
-extern crate serde;
+
+
 #[cfg(test)]
 #[macro_use]
 extern crate assert_approx_eq;
