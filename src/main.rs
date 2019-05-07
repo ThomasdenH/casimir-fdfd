@@ -3,15 +3,9 @@
 //! `casimir-fdfd` is an implementation of a stress-tensor based FDFD method for computing Casimir
 //! forces. Based on [Virtual photons in imaginary time: Computing exact Casimir forces via standard numerical-electromagnetism techniques](https://arxiv.org/abs/0705.3661).
 
-#[macro_use]
-extern crate failure;
-
-
-
 use serde_json;
 #[macro_use]
 extern crate serde_derive;
-
 
 #[cfg(test)]
 #[macro_use]
@@ -26,11 +20,30 @@ pub mod greenfunctions;
 /// Geometry and materials that describe the simulated environment.
 pub mod world;
 
+use crate::world::World;
 use clap::{App, Arg};
-use failure::Error;
+use snafu::{ResultExt, Snafu};
 use std::fs::File;
 use std::path::Path;
-use crate::world::World;
+
+#[derive(Debug, Snafu)]
+enum Error {
+    #[snafu(display("could not open world file: {}", source))]
+    OpenWorld {
+        /// The source that caused this error.
+        source: std::io::Error,
+    },
+    #[snafu(display("could not deserialize world: {}", source))]
+    DeserializeWorld {
+        /// The source that caused this error.
+        source: serde_json::error::Error,
+    },
+    #[snafu(display("invalid world: {}", source))]
+    ValidateWorld {
+        /// The source that caused this error.
+        source: world::WorldError,
+    },
+}
 
 fn main() -> Result<(), Error> {
     let matches = App::new("casimir-fdfd")
@@ -46,9 +59,9 @@ fn main() -> Result<(), Error> {
         .get_matches();
 
     let world_path = Path::new(matches.value_of("INPUT").unwrap());
-    let world_file = File::open(world_path)?;
-    let mut world: World = serde_json::from_reader(world_file)?;
-    world.validate()?;
+    let world_file = File::open(world_path).context(OpenWorld {})?;
+    let mut world: World = serde_json::from_reader(world_file).context(DeserializeWorld {})?;
+    world.validate().context(ValidateWorld {})?;
 
     world.set_progress_bar(matches.is_present("progressbar"));
 

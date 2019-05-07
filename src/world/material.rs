@@ -1,4 +1,5 @@
 use serde::de::{self, Deserialize, Deserializer, MapAccess, Visitor};
+use snafu::Snafu;
 use std::f32::consts::PI;
 use std::fmt;
 use std::marker::PhantomData;
@@ -23,15 +24,17 @@ pub struct DrudeMaterial {
     precision: f32,
 }
 
-/// This error indicates that a string could not be parsed to a `DrudeMaterial`.
-#[derive(Debug, Fail, Clone, Eq, PartialEq, Hash)]
-#[fail(display = "unknown drude material: {}", name)]
-pub struct UnknownDrudeMaterialError {
-    name: String,
+/// This error indicates that a string could not be parsed to a
+/// `DrudeMaterial`.
+#[derive(Snafu, Debug, Eq, PartialEq, Clone, Hash)]
+pub enum ParseDrudeMaterialError {
+    /// Returned if the supplied material is not a recognized material.
+    #[snafu(display("unknown drude material: {}", name))]
+    Unknown { name: String },
 }
 
 impl FromStr for DrudeMaterial {
-    type Err = UnknownDrudeMaterialError;
+    type Err = ParseDrudeMaterialError;
 
     /// Some predefined material names can be converted to a `DrudeMaterial`. If it cannot be
     /// converted, an `Err(UnknownDrudeMaterialError)` is returned.
@@ -43,7 +46,7 @@ impl FromStr for DrudeMaterial {
                 step: 0.1,
                 precision: 0.001,
             }),
-            other => Err(UnknownDrudeMaterialError {
+            other => Err(ParseDrudeMaterialError::Unknown {
                 name: other.to_string(),
             }),
         }
@@ -82,7 +85,7 @@ impl Material for DrudeMaterial {
 /// string representation.
 pub fn string_or_struct<'de, T, D>(deserializer: D) -> Result<T, D::Error>
 where
-    T: Deserialize<'de> + FromStr<Err = UnknownDrudeMaterialError>,
+    T: Deserialize<'de> + FromStr<Err = ParseDrudeMaterialError>,
     D: Deserializer<'de>,
 {
     // This is a Visitor that forwards string types to T's `FromStr` impl and
@@ -94,7 +97,7 @@ where
 
     impl<'de, T> Visitor<'de> for StringOrStruct<T>
     where
-        T: Deserialize<'de> + FromStr<Err = UnknownDrudeMaterialError>,
+        T: Deserialize<'de> + FromStr<Err = ParseDrudeMaterialError>,
     {
         type Value = T;
 
@@ -140,8 +143,13 @@ mod tests {
 
     #[test]
     fn parse_invalid() {
-        let error: UnknownDrudeMaterialError = "copper".parse::<DrudeMaterial>().err().unwrap();
-        assert_eq!(error.name, "copper");
+        let error: ParseDrudeMaterialError = "copper".parse::<DrudeMaterial>().err().unwrap();
+        assert_eq!(
+            error,
+            ParseDrudeMaterialError::Unknown {
+                name: "copper".into()
+            }
+        );
     }
 
     #[test]

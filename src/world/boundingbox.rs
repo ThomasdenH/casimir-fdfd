@@ -1,3 +1,4 @@
+use snafu::Snafu;
 use std::fmt;
 
 /// A box aligned with the grid.
@@ -11,15 +12,11 @@ pub struct BoundingBox {
     pub z1: usize,
 }
 
-/// This error is returned when expanding the `BoundingBox` below the 0 boundary.
-#[derive(Debug, Fail)]
-#[fail(
-    display = "expansion outside domain: {} expanded by {}",
-    bbox, distance
-)]
-pub struct ExpansionOutsideDomainError {
-    bbox: BoundingBox,
-    distance: usize,
+#[derive(Debug, Snafu)]
+pub enum ExpansionError {
+    /// This error is returned when expanding the `BoundingBox` below the 0 boundary.
+    #[snafu(display("expansion outside domain: {} expanded by {}", bbox, distance))]
+    OutsideDomain { bbox: BoundingBox, distance: usize },
 }
 
 impl fmt::Display for BoundingBox {
@@ -70,11 +67,11 @@ impl BoundingBox {
     }
 
     /// Return an expanded version of this box. This function returns a
-    /// `Result<BoundingBox, ExpansionOutsideDomainError>` because the expansion could cause an
+    /// `Result<BoundingBox, ExpansionError>` because the expansion could cause an
     /// underflow.
-    pub fn expanded(&self, distance: usize) -> Result<BoundingBox, ExpansionOutsideDomainError> {
+    pub fn expanded(&self, distance: usize) -> Result<BoundingBox, ExpansionError> {
         if distance > self.x0 || distance > self.y0 || distance > self.z0 {
-            Err(ExpansionOutsideDomainError {
+            Err(ExpansionError::OutsideDomain {
                 bbox: *self,
                 distance,
             })

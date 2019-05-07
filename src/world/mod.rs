@@ -5,13 +5,14 @@ mod shape;
 use crate::config::SimulationConfig;
 use crate::fields::ScalarField;
 use crate::greenfunctions::cosinebasis::{CosineBasis, Direction};
+use crate::world::boundingbox::BoundingBox;
+use crate::world::shape::Shape;
 use nalgebra::*;
 use pbr::ProgressBar;
 use rayon::iter::*;
+use snafu::Snafu;
 use std::io::Stdout;
 use std::sync::{Arc, Mutex};
-use crate::world::boundingbox::BoundingBox;
-use crate::world::shape::Shape;
 
 /// A struct representing the world.
 #[derive(PartialEq, Clone, Debug, Deserialize)]
@@ -47,11 +48,11 @@ impl<'a> Iterator for ForceIterator<'a> {
 }
 
 /// These errors can be thrown when validating a world.
-#[derive(Debug, Fail)]
+#[derive(Debug, Snafu)]
 pub enum WorldError {
     /// An error indicating that one of the shapes is too close too the edge, causing the bounding
     /// box to cross the boundary.
-    #[fail(display = "shape {} too close to edge", index)]
+    #[snafu(display("shape {} too close to edge", index))]
     ShapeTooCloseToEdge {
         /// The index of the violating object.
         index: usize,
@@ -59,10 +60,7 @@ pub enum WorldError {
 
     /// An error indicating that the bounding boxes of two objects in this world intersect and
     /// and therefore this world is invalid.
-    #[fail(
-        display = "bounding boxes of shapes {} and {} intersect",
-        index_1, index_2
-    )]
+    #[snafu(display("bounding boxes of shapes {} and {} intersect", index_1, index_2))]
     ShapesIntersect {
         /// The index of the first object intersecting with the second.
         index_1: usize,
