@@ -17,7 +17,7 @@ clap = "2"
 snafu = "0.6.8"
 
 [dependencies.nalgebra]
-version = "0.21"
+version = "0.22"
 features = ["serde-serialize"]
 
 [dev-dependencies]
